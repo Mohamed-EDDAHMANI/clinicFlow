@@ -139,7 +139,7 @@
         <mxCell id="patients-r6" value="" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=none;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;top=0;left=0;right=0;bottom=0;html=1;" vertex="1" parent="patients">
           <mxGeometry y="186" width="420" height="26" as="geometry" />
         </mxCell>
-        <mxCell id="patients-r6-k" value="" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;fontStyle=1;overflow=hidden;whiteSpace=wrap;html=1;" vertex="1" parent="patients-r6">
+        <mxCell id="patients-r6-k" value="IDX" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;fontStyle=1;overflow=hidden;whiteSpace=wrap;html=1;" vertex="1" parent="patients-r6">
           <mxGeometry width="70" height="26" as="geometry"><mxRectangle width="70" height="26" as="alternateBounds" /></mxGeometry>
         </mxCell>
         <mxCell id="patients-r6-c" value="created_at : timestamptz" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;fontStyle=0;overflow=hidden;whiteSpace=wrap;html=1;" vertex="1" parent="patients-r6">
@@ -205,7 +205,7 @@
         <mxCell id="appointments-r4" value="" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=none;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;top=0;left=0;right=0;bottom=0;html=1;" vertex="1" parent="appointments">
           <mxGeometry y="134" width="420" height="26" as="geometry" />
         </mxCell>
-        <mxCell id="appointments-r4-k" value="" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;fontStyle=1;overflow=hidden;whiteSpace=wrap;html=1;" vertex="1" parent="appointments-r4">
+        <mxCell id="appointments-r4-k" value="IDX" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;fontStyle=1;overflow=hidden;whiteSpace=wrap;html=1;" vertex="1" parent="appointments-r4">
           <mxGeometry width="70" height="26" as="geometry"><mxRectangle width="70" height="26" as="alternateBounds" /></mxGeometry>
         </mxCell>
         <mxCell id="appointments-r4-c" value="status : appt_status (pending, confirmed, cancelled)" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;fontStyle=0;overflow=hidden;whiteSpace=wrap;html=1;" vertex="1" parent="appointments-r4">
