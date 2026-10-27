@@ -1,5 +1,6 @@
 import authService, { REFRESH_TOKEN_MAX_AGE } from '../services/authService.js';
 import env from '../config/env.js';
+import { sendSuccess } from '../utils/apiResponse.js';
 
 const refreshCookieOptions = {
     httpOnly: true,
@@ -18,18 +19,18 @@ const sendRefreshCookie = (res, token) => {
 const login = async (req, res) => {
     const { accessToken, refreshToken, user } = await authService.login(req.body.email, req.body.password);
     sendRefreshCookie(res, refreshToken);
-    res.status(200).json({ message: 'Login successful', accessToken, user });
+    sendSuccess(res, { accessToken, user }, 'Login successful');
 };
 
 const register = async (req, res) => {
     const userId = await authService.register(req.body);
-    res.status(201).json({ message: 'User registered successfully', userId });
+    sendSuccess(res, { userId }, 'User registered successfully', 201);
 };
 
 const refresh = async (req, res) => {
     const { accessToken, refreshToken, user } = await authService.refresh(req.cookies.refreshToken);
     sendRefreshCookie(res, refreshToken);
-    res.status(200).json({ accessToken, user });
+    sendSuccess(res, { accessToken, user }, 'Token refreshed');
 };
 
 const clearRefreshCookieOnError = (err, req, res, next) => {
@@ -40,7 +41,7 @@ const clearRefreshCookieOnError = (err, req, res, next) => {
 const logout = async (req, res) => {
     await authService.logout(req.cookies.refreshToken);
     res.clearCookie("refreshToken", refreshCookieOptions);
-    res.status(200).json({ message: 'Logged out' });
+    sendSuccess(res, null, 'Logged out');
 };
 
 

@@ -21,7 +21,7 @@ const LoginPage = () => {
 
   const onSubmit = async (values) => {
     try {
-      const data = await login(values.email, values.password)
+      const { data } = await login(values.email, values.password)
       dispatch(setUser(data))
     } catch (err) {
       setError('root', { message: err.message })
