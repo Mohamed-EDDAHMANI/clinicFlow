@@ -28,6 +28,10 @@ Chaque commande copie un template prêt à l'emploi, installe les dépendances e
 | **Backend** | Express 5, pg, JWT (jsonwebtoken) + bcrypt, Zod, cookie-parser, cors, express-rate-limit, morgan |
 | **Outils** | node-pg-migrate (migrations), nodemon, Supertest (tests), ESLint |
 
+## Partie 2 : Conception de la base de données
+
+Le schéma de la base de données (ERD) et la justification des relations sont dans [docs/ERD.md](docs/ERD.md).
+
 ## Lancer avec Docker
 
 ```bash
