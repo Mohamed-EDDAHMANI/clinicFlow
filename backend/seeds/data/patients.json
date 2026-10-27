@@ -1,0 +1,37 @@
+[
+  {
+    "full_name": "Ahmed Alaoui",
+    "cin": "AB123456",
+    "phone": "0612345678",
+    "birth_date": "1985-03-12",
+    "address": "12 Rue Ibn Sina, Rabat"
+  },
+  {
+    "full_name": "Fatima Zahra Idrissi",
+    "cin": "CD234567",
+    "phone": "0623456789",
+    "birth_date": "1992-07-25",
+    "address": "45 Bd Mohammed V, Casablanca"
+  },
+  {
+    "full_name": "Karim Tazi",
+    "cin": "EF345678",
+    "phone": "0634567890",
+    "birth_date": "1978-11-03",
+    "address": null
+  },
+  {
+    "full_name": "Nadia Berrada",
+    "cin": "GH456789",
+    "phone": "0645678901",
+    "birth_date": "2000-01-18",
+    "address": "8 Avenue Hassan II, Fès"
+  },
+  {
+    "full_name": "Omar Chraibi",
+    "cin": "IJ567890",
+    "phone": "0656789012",
+    "birth_date": "1965-09-30",
+    "address": "23 Rue Allal Ben Abdellah, Marrakech"
+  }
+]

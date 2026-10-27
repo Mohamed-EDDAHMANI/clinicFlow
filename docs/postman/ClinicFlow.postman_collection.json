@@ -28,6 +28,18 @@
     {
       "key": "patientId",
       "value": ""
+    },
+    {
+      "key": "appointmentPatientId",
+      "value": ""
+    },
+    {
+      "key": "appointmentDate",
+      "value": ""
+    },
+    {
+      "key": "appointmentId",
+      "value": ""
     }
   ],
   "item": [
@@ -190,6 +202,106 @@
             "header": [],
             "url": "{{baseUrl}}/auth/logout",
             "description": "Révoque le refresh token et supprime le cookie."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get all users (admin)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Liste des utilisateurs (sans mot de passe). Réservé à l'admin.",
+            "url": "{{baseUrl}}/user/getAll"
+          }
+        },
+        {
+          "name": "Create staff (admin)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Création d'un utilisateur (`admin` ou `staff`, `staff` par défaut). Réservé à l'admin.",
+            "url": "{{baseUrl}}/user/create",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nouveau Staff\",\n  \"email\": \"staff.{{$timestamp}}@clinicflow.ma\",\n  \"password\": \"staff123\",\n  \"role\": \"staff\"\n}"
+            }
           }
         }
       ]
@@ -454,6 +566,321 @@
             },
             "description": "Soft delete du patient et de ses rendez-vous (dans une transaction). Réservé à l'admin.",
             "url": "{{baseUrl}}/patients/{{patientId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "item": [
+        {
+          "name": "Create appointment",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});",
+                  "",
+                  "pm.sendRequest({",
+                  "    url: pm.collectionVariables.get('baseUrl') + '/patients?limit=1',",
+                  "    method: 'GET',",
+                  "    header: { Authorization: `Bearer ${pm.collectionVariables.get('accessToken')}` }",
+                  "}, (err, res) => {",
+                  "    if (!err && res.code === 200 && res.json().data.length) {",
+                  "        pm.collectionVariables.set('appointmentPatientId', res.json().data[0].id);",
+                  "    }",
+                  "});",
+                  "",
+                  "const date = new Date();",
+                  "date.setUTCDate(date.getUTCDate() + 1 + Math.floor(Math.random() * 60));",
+                  "date.setUTCHours(8 + Math.floor(Math.random() * 10), Math.floor(Math.random() * 60), 0, 0);",
+                  "pm.collectionVariables.set('appointmentDate', date.toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('appointmentId', pm.response.json().data.id);",
+                  "}",
+                  "",
+                  "pm.test('Status 201', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Création d'un rendez-vous. `created_by` est l'utilisateur connecté. Le pre-request prend le premier patient de la liste (`appointmentPatientId`) et une date aléatoire dans les 60 prochains jours (`appointmentDate`). Deux rendez-vous `confirmed` du même patient dans une fenêtre de 30 minutes renvoient 409. L'id créé est enregistré dans `appointmentId`.",
+            "url": "{{baseUrl}}/appointments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"{{appointmentPatientId}}\",\n  \"appointment_date\": \"{{appointmentDate}}\",\n  \"status\": \"pending\",\n  \"reason\": \"Consultation générale\",\n  \"notes\": null\n}"
+            }
+          }
+        },
+        {
+          "name": "List appointments",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Liste des rendez-vous triés par date. Filtres optionnels : `date` (YYYY-MM-DD, journée dans le fuseau Africa/Casablanca) et `status` (`pending`, `confirmed`, `cancelled`). Activer les paramètres dans l'onglet Params.",
+            "url": {
+              "raw": "{{baseUrl}}/appointments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-10-27",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "pending",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update appointment status",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Change le statut (`pending`, `confirmed`, `cancelled`). Passer à `confirmed` respecte la règle des 30 minutes (409).",
+            "url": "{{baseUrl}}/appointments/{{appointmentId}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Stats",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Total patients, rendez-vous du jour (Africa/Casablanca), nombre de rendez-vous `pending` et `confirmed`.",
+            "url": "{{baseUrl}}/dashboard/stats"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audit logs",
+      "item": [
+        {
+          "name": "List audit logs (admin)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Historique des créations, modifications et suppressions (qui, quoi, avant / après), du plus récent au plus ancien. Filtres optionnels : `action`, `entity_type`, `entity_id`, `user_id`. Pagination : `page`, `limit` (20 par défaut). Réservé à l'admin.",
+            "url": {
+              "raw": "{{baseUrl}}/audit-logs?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audit-logs"
+              ],
+              "query": [
+                {
+                  "key": "entity_type",
+                  "value": "patients",
+                  "disabled": true
+                },
+                {
+                  "key": "action",
+                  "value": "UPDATE",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
           }
         }
       ]
