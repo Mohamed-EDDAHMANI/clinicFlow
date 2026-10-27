@@ -16,24 +16,20 @@ function App() {
     <Router>
       <Routes>
 
-        {/*  Public Routes  */}
         <Route element={<PublicRoute />}>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
         </Route>
 
-        {/*  Private Routes - user  */}
         <Route element={<ProtectedRoute allowedRoles={['user']} />}>
           <Route path="/home" element={<HomePage />} />
         </Route>
 
-        {/*  Private Routes - admin  */}
         <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
           <Route path="/dashboard" element={<DashboardPage />} />
         </Route>
 
-        {/*  Utils  */}
         <Route path="/reset" element={<ResetRedux />} />
         <Route path="*" element={<NotFoundPage />} />
 

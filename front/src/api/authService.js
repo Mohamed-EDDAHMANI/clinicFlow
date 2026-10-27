@@ -1,6 +1,5 @@
 import { apiFetch } from './client'
 
-// Public routes => auth: false (no access token, no refresh on 401).
 export const login = (email, password) =>
   apiFetch('/auth/login', {
     method: 'POST',
@@ -18,6 +17,5 @@ export const register = (payload) =>
 export const refresh = () =>
   apiFetch('/auth/refresh', { method: 'POST', auth: false })
 
-// Protected route => auth: true (default).
 export const logout = () =>
   apiFetch('/auth/logout', { method: 'POST' })

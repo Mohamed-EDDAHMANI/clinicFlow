@@ -5,8 +5,6 @@ import authReducer from "../features/authSlice";
 import cartReducer from "../features/cartSlice";
 import productReducer from "../features/productSlice";
 
-// Only the user is saved in localStorage. The access token stays in memory (XSS)
-// and comes back from /auth/refresh on the first 401.
 const authPersistConfig = { key: "auth", storage, whitelist: ["user"] };
 
 export const store = configureStore({

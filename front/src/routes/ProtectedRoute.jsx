@@ -2,8 +2,6 @@ import { useSelector } from 'react-redux'
 import { Navigate, Outlet } from 'react-router'
 import { getRole, getDashboardRoute } from './getDashboardRoute'
 
-// Protected route. Not logged in => /login.
-// If allowedRoles is set and the role is not included => back to their dashboard.
 const ProtectedRoute = ({ allowedRoles }) => {
   const user = useSelector((state) => state.auth.user)
   const role = getRole(user)

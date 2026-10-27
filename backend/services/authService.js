@@ -78,7 +78,6 @@ const refresh = async (token) => {
 
     const tokens = await createSession(user);
 
-    // The user is returned so the front can restore the session after a page reload
     return { ...tokens, user: toPublicUser(user) };
 };
 
