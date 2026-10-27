@@ -23,11 +23,6 @@ const login = async (req, res) => {
     sendSuccess(res, { accessToken, user }, 'Login successful');
 };
 
-const register = async (req, res) => {
-    const userId = await authService.register(req.body);
-    sendSuccess(res, { userId }, 'User registered successfully', 201);
-};
-
 const refresh = async (req, res) => {
     const { accessToken, refreshToken, user } = await authService.refresh(req.cookies.refreshToken);
     sendRefreshCookie(res, refreshToken);
@@ -53,7 +48,6 @@ const me = async (req, res) => {
 
 export default {
     login,
-    register,
     refresh,
     clearRefreshCookieOnError,
     logout,

@@ -6,11 +6,6 @@ const getAllUsers = async (req, res) => {
     sendSuccess(res, users, 'Users fetched successfully');
 };
 
-const getMe = async (req, res) => {
-    const user = await userService.getById(req.user.id);
-    sendSuccess(res, user, 'User fetched successfully');
-};
-
 const createUser = async (req, res) => {
     const userId = await userService.create(req.body, req.user);
     sendSuccess(res, { userId }, 'User created successfully', 201);
@@ -18,6 +13,5 @@ const createUser = async (req, res) => {
 
 export default {
     getAllUsers,
-    getMe,
     createUser
 };

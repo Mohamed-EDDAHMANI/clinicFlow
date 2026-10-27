@@ -8,7 +8,6 @@ import { validate } from '../middlewares/validateMiddleware.js';
 import { createUserSchema } from '../validations/userValidation.js';
 
 
-router.get('/me', authenticate, userController.getMe);
 router.get('/getAll', authenticate, authorize('USER_GETALL'), userController.getAllUsers);
 router.post('/create', authenticate, authorize('USER_CREATE'), validate(createUserSchema), userController.createUser);
 

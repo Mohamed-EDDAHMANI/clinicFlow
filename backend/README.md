@@ -40,9 +40,9 @@ tests/
 
 | Route | Accès |
 |---|---|
-| `POST /api/auth/register` · `login` | public |
+| `POST /api/auth/login` | public |
 | `POST /api/auth/refresh` · `logout` | cookie `refreshToken` |
-| `GET /api/user/me` | connecté |
+| `GET /api/auth/me` | connecté |
 | `GET /api/user/getAll` | admin |
 | `POST /api/user/create` | connecté (seul l'admin choisit le rôle) |
 

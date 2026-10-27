@@ -2,7 +2,6 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import env from '../config/env.js';
-import { ROLES } from '../config/permissions.js';
 import userModel from '../models/userModel.js';
 import refreshTokenModel from '../models/refreshTokenModel.js';
 import AppError from '../utils/AppError.js';
@@ -46,16 +45,6 @@ const login = async (email, password) => {
     return { ...tokens, user: toPublicUser(user) };
 };
 
-const register = async ({ name, email, password }) => {
-    const existingUser = await userModel.findOne(email);
-
-    if (existingUser) {
-        throw new AppError('Email already exists', 409);
-    }
-
-    return userModel.createUser({ name, email, password, role: ROLES.USER });
-};
-
 const refresh = async (token) => {
     if (!token) {
         throw new AppError('No refresh token', 401);
@@ -89,7 +78,6 @@ const logout = async (token) => {
 
 export default {
     login,
-    register,
     refresh,
     logout
 };
