@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 import app from '../app.js';
 import db from '../config/db.js';
-import { createTestUser, login, refreshCookie, deleteTestUsers, testEmail } from './helpers.js';
+import { createTestUser, login, refreshCookie, deleteTestUsers, testEmail, uniqueStamp } from './helpers.js';
 
-const stamp = Date.now();
+const stamp = uniqueStamp();
 const staffEmail = testEmail('staff', stamp);
 const deletedEmail = testEmail('deleted', stamp);
 
