@@ -1,0 +1,64 @@
+import db from '../config/db.js';
+
+const CLINIC_TIMEZONE = 'Africa/Casablanca';
+
+const PUBLIC_COLUMNS = `a.id, a.patient_id, p.full_name AS patient_name, p.cin AS patient_cin, a.created_by,
+    a.appointment_date, a.status, a.reason, a.notes, a.created_at, a.updated_at`;
+
+const create = async ({ patient_id, created_by, appointment_date, status, reason, notes = null }) => {
+    const { rows } = await db.query(
+        `WITH a AS (
+            INSERT INTO appointments (patient_id, created_by, appointment_date, status, reason, notes)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING *
+        )
+        SELECT ${PUBLIC_COLUMNS} FROM a JOIN patients p ON p.id = a.patient_id`,
+        [patient_id, created_by, appointment_date, status, reason, notes]
+    );
+    return rows[0];
+};
+
+const findAll = async ({ date, status }) => {
+    const conditions = ['a.deleted_at IS NULL'];
+    const values = [];
+
+    if (date) {
+        values.push(date);
+        conditions.push(
+            `a.appointment_date >= ($${values.length}::date::timestamp AT TIME ZONE '${CLINIC_TIMEZONE}')`,
+            `a.appointment_date < (($${values.length}::date + 1)::timestamp AT TIME ZONE '${CLINIC_TIMEZONE}')`
+        );
+    }
+
+    if (status) {
+        values.push(status);
+        conditions.push(`a.status = $${values.length}`);
+    }
+
+    const { rows } = await db.query(
+        `SELECT ${PUBLIC_COLUMNS} FROM appointments a JOIN patients p ON p.id = a.patient_id
+         WHERE ${conditions.join(' AND ')}
+         ORDER BY a.appointment_date, a.id`,
+        values
+    );
+    return rows;
+};
+
+const updateStatus = async (id, status) => {
+    const { rows } = await db.query(
+        `WITH a AS (
+            UPDATE appointments SET status = $2
+            WHERE id = $1 AND deleted_at IS NULL
+            RETURNING *
+        )
+        SELECT ${PUBLIC_COLUMNS} FROM a JOIN patients p ON p.id = a.patient_id`,
+        [id, status]
+    );
+    return rows[0];
+};
+
+export default {
+    create,
+    findAll,
+    updateStatus
+};
