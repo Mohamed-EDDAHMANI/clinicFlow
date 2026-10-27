@@ -24,7 +24,7 @@ node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 app.js           app Express (middlewares, routes)
 index.js         lance le serveur
 config/          env (validé avec Zod), db, permissions
-routes/          auth, user, product
+routes/          auth, user
 controllers/     req/res seulement
 services/        logique métier
 models/          requêtes SQL
@@ -45,10 +45,6 @@ tests/
 | `GET /api/user/me` | connecté |
 | `GET /api/user/getAll` | admin |
 | `POST /api/user/create` | connecté (seul l'admin choisit le rôle) |
-| `GET /api/product/getAll` · `/:id` | public |
-| `POST /api/product/create` | admin |
-| `PATCH /api/product/update/:id` | admin |
-| `DELETE /api/product/delete/:id` | admin |
 
 ## Fonctionnement
 
