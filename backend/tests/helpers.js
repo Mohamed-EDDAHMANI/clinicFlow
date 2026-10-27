@@ -5,6 +5,8 @@ import userModel from '../models/userModel.js';
 
 export const PASSWORD = 'secret123';
 
+export const uniqueStamp = () => `${Date.now()}${process.pid}`;
+
 export const testEmail = (label, stamp) => `test.${label}.${stamp}@test.com`;
 
 export const createTestUser = async (email, role = 'staff') => {

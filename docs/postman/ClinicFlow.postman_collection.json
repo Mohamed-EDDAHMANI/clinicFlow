@@ -24,6 +24,10 @@
     {
       "key": "refreshToken",
       "value": ""
+    },
+    {
+      "key": "patientId",
+      "value": ""
     }
   ],
   "item": [
@@ -186,6 +190,270 @@
             "header": [],
             "url": "{{baseUrl}}/auth/logout",
             "description": "Révoque le refresh token et supprime le cookie."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Patients",
+      "item": [
+        {
+          "name": "Create patient",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('patientId', pm.response.json().data.id);",
+                  "}",
+                  "",
+                  "pm.test('Status 201', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Création d'un patient. `full_name`, `cin`, `phone` et `birth_date` sont obligatoires, `address` est optionnel. Le `cin` est enregistré en majuscules et doit être unique. L'id du patient créé est enregistré dans la variable `patientId`.",
+            "url": "{{baseUrl}}/patients",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Ahmed Alaoui\",\n  \"cin\": \"AB{{$randomInt}}{{$randomInt}}\",\n  \"phone\": \"0612345678\",\n  \"birth_date\": \"1985-03-12\",\n  \"address\": \"12 Rue Ibn Sina, Rabat\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List patients",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Liste paginée des patients, triée du plus récent au plus ancien. `search` cherche dans le nom et le CIN. Réponse : `data` + `meta` (`page`, `limit`, `total`, `totalPages`).",
+            "url": {
+              "raw": "{{baseUrl}}/patients?search=&page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patients"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get patient",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Détails d'un patient.",
+            "url": "{{baseUrl}}/patients/{{patientId}}"
+          }
+        },
+        {
+          "name": "Update patient",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Modification de tous les champs du patient.",
+            "url": "{{baseUrl}}/patients/{{patientId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Ahmed Alaoui\",\n  \"cin\": \"AB{{$randomInt}}{{$randomInt}}\",\n  \"phone\": \"0700000000\",\n  \"birth_date\": \"1985-03-12\",\n  \"address\": \"Casablanca\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete patient (admin)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Soft delete du patient et de ses rendez-vous (dans une transaction). Réservé à l'admin.",
+            "url": "{{baseUrl}}/patients/{{patientId}}"
           }
         }
       ]
