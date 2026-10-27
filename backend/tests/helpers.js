@@ -20,5 +20,8 @@ export const login = (email, password = PASSWORD) =>
 export const refreshCookie = (res) =>
     res.headers['set-cookie'].find((cookie) => cookie.startsWith('refreshToken=')).split(';')[0];
 
-export const deleteTestUsers = (stamp) =>
-    db.query('DELETE FROM users WHERE email LIKE $1', [`test.%.${stamp}@test.com`]);
+export const deleteTestUsers = async (stamp) => {
+    const pattern = `test.%.${stamp}@test.com`;
+    await db.query('DELETE FROM audit_logs WHERE user_id IN (SELECT id FROM users WHERE email LIKE $1)', [pattern]);
+    await db.query('DELETE FROM users WHERE email LIKE $1', [pattern]);
+};

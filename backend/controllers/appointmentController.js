@@ -12,7 +12,7 @@ const getAppointments = async (req, res) => {
 };
 
 const updateAppointmentStatus = async (req, res) => {
-    const appointment = await appointmentService.updateStatus(req.params.id, req.body.status);
+    const appointment = await appointmentService.updateStatus(req.params.id, req.body.status, req.user.id);
     sendSuccess(res, appointment, 'Appointment status updated successfully');
 };
 

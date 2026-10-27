@@ -44,6 +44,15 @@ const findAll = async ({ date, status }) => {
     return rows;
 };
 
+const findById = async (id) => {
+    const { rows } = await db.query(
+        `SELECT ${PUBLIC_COLUMNS} FROM appointments a JOIN patients p ON p.id = a.patient_id
+         WHERE a.id = $1 AND a.deleted_at IS NULL`,
+        [id]
+    );
+    return rows[0];
+};
+
 const updateStatus = async (id, status) => {
     const { rows } = await db.query(
         `WITH a AS (
@@ -60,5 +69,6 @@ const updateStatus = async (id, status) => {
 export default {
     create,
     findAll,
+    findById,
     updateStatus
 };
