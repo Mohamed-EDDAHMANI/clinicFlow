@@ -27,3 +27,18 @@ Chaque commande copie un template prêt à l'emploi, installe les dépendances e
 | **Front** | React 19, Vite, Tailwind CSS v4, Redux Toolkit + redux-persist, React Router, React Hook Form + Zod |
 | **Backend** | Express 5, pg, JWT (jsonwebtoken) + bcrypt, Zod, cookie-parser, cors, express-rate-limit, morgan |
 | **Outils** | node-pg-migrate (migrations), nodemon, Supertest (tests), ESLint |
+
+## Lancer avec Docker
+
+```bash
+cp .env.example .env     # puis remplir POSTGRES_PASSWORD, les secrets JWT et ADMIN_PASSWORD
+docker compose up --build
+```
+
+| Service | URL |
+|---|---|
+| Front (React, servi par nginx) | http://localhost:5173 |
+| Backend (API) | http://localhost:3000/api |
+| PostgreSQL | interne au réseau Docker |
+
+Au démarrage, le backend lance les migrations puis le seed (admin du `.env`). Les ports se changent avec `BACKEND_PORT` et `FRONT_PORT` dans `.env`.
