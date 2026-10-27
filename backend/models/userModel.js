@@ -14,12 +14,12 @@ const findOne = async (email) => {
 }
 
 const findById = async (id) => {
-    const { rows } = await db.query('SELECT * FROM users WHERE id = $1', [id]);
+    const { rows } = await db.query('SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL', [id]);
     return rows[0];
 };
 
 const findPublicById = async (id) => {
-    const { rows } = await db.query(`SELECT ${PUBLIC_COLUMNS} FROM users WHERE id = $1`, [id]);
+    const { rows } = await db.query(`SELECT ${PUBLIC_COLUMNS} FROM users WHERE id = $1 AND deleted_at IS NULL`, [id]);
     return rows[0];
 };
 

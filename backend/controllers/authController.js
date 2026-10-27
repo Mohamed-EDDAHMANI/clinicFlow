@@ -1,4 +1,5 @@
 import authService, { REFRESH_TOKEN_MAX_AGE } from '../services/authService.js';
+import userService from '../services/userService.js';
 import env from '../config/env.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 
@@ -44,11 +45,17 @@ const logout = async (req, res) => {
     sendSuccess(res, null, 'Logged out');
 };
 
+const me = async (req, res) => {
+    const user = await userService.getById(req.user.id);
+    sendSuccess(res, user, 'User fetched successfully');
+};
+
 
 export default {
     login,
     register,
     refresh,
     clearRefreshCookieOnError,
-    logout
+    logout,
+    me
 };

@@ -32,7 +32,7 @@ const createSession = async (user) => {
     return { accessToken, refreshToken };
 };
 
-const toPublicUser = (user) => ({ id: user.id, name: user.full_name, email: user.email, role: user.role });
+const toPublicUser = (user) => ({ id: user.id, full_name: user.full_name, email: user.email, role: user.role });
 
 const login = async (email, password) => {
     const user = await userModel.findOne(email);
