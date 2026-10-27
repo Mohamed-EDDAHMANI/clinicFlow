@@ -1,6 +1,5 @@
 import db from '../config/db.js';
-
-const CLINIC_TIMEZONE = 'Africa/Casablanca';
+import { CLINIC_TIMEZONE } from '../config/clinic.js';
 
 const PUBLIC_COLUMNS = `a.id, a.patient_id, p.full_name AS patient_name, p.cin AS patient_cin, a.created_by,
     a.appointment_date, a.status, a.reason, a.notes, a.created_at, a.updated_at`;
