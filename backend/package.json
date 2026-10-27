@@ -9,7 +9,7 @@
     "migrate:down": "node-pg-migrate down -j sql",
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "NODE_ENV=test node --test 'tests/**/*.test.js'",
+    "test": "NODE_ENV=test node --test --test-concurrency=1 'tests/**/*.test.js'",
     "seed": "node seeds/seed.js"
   },
   "dependencies": {
