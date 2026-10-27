@@ -12,7 +12,7 @@ export const validate = (schema, source = 'body') => {
             return next(new AppError('Validation failed', 400, errors));
         }
 
-        req[source] = result.data;
+        Object.defineProperty(req, source, { value: result.data, writable: true, configurable: true });
         next();
     };
 };

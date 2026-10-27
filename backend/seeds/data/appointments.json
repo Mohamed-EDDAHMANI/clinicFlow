@@ -1,0 +1,12 @@
+[
+  { "day_offset": 0, "time": "09:00", "status": "confirmed", "reason": "Consultation générale", "notes": null },
+  { "day_offset": 3, "time": "16:00", "status": "pending", "reason": "Résultats d'analyses", "notes": null },
+  { "day_offset": 0, "time": "10:30", "status": "pending", "reason": "Suivi grossesse", "notes": null },
+  { "day_offset": 2, "time": "09:00", "status": "confirmed", "reason": "Échographie", "notes": null },
+  { "day_offset": 0, "time": "14:00", "status": "confirmed", "reason": "Contrôle tension artérielle", "notes": "Apporter les derniers résultats" },
+  { "day_offset": -5, "time": "10:00", "status": "cancelled", "reason": "Vaccination", "notes": "Patient absent" },
+  { "day_offset": 1, "time": "11:00", "status": "pending", "reason": "Douleurs abdominales", "notes": null },
+  { "day_offset": -3, "time": "13:00", "status": "confirmed", "reason": "Certificat médical", "notes": null },
+  { "day_offset": 1, "time": "15:30", "status": "pending", "reason": "Suivi diabète", "notes": "Prévoir analyse HbA1c" },
+  { "day_offset": 0, "time": "11:15", "status": "cancelled", "reason": "Consultation générale", "notes": "Annulé par le patient" }
+]

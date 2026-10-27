@@ -2,7 +2,6 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import env from '../config/env.js';
-import { ROLES } from '../config/permissions.js';
 import userModel from '../models/userModel.js';
 import refreshTokenModel from '../models/refreshTokenModel.js';
 import AppError from '../utils/AppError.js';
@@ -32,7 +31,7 @@ const createSession = async (user) => {
     return { accessToken, refreshToken };
 };
 
-const toPublicUser = (user) => ({ id: user.id, name: user.name, email: user.email, role: user.role });
+const toPublicUser = (user) => ({ id: user.id, full_name: user.full_name, email: user.email, role: user.role });
 
 const login = async (email, password) => {
     const user = await userModel.findOne(email);
@@ -44,16 +43,6 @@ const login = async (email, password) => {
     const tokens = await createSession(user);
 
     return { ...tokens, user: toPublicUser(user) };
-};
-
-const register = async ({ name, email, password }) => {
-    const existingUser = await userModel.findOne(email);
-
-    if (existingUser) {
-        throw new AppError('Email already exists', 409);
-    }
-
-    return userModel.createUser({ name, email, password, role: ROLES.USER });
 };
 
 const refresh = async (token) => {
@@ -78,7 +67,6 @@ const refresh = async (token) => {
 
     const tokens = await createSession(user);
 
-    // The user is returned so the front can restore the session after a page reload
     return { ...tokens, user: toPublicUser(user) };
 };
 
@@ -90,7 +78,6 @@ const logout = async (token) => {
 
 export default {
     login,
-    register,
     refresh,
     logout
 };

@@ -1,5 +1,6 @@
 import { ROLES } from '../config/permissions.js';
 import userModel from '../models/userModel.js';
+import auditLogService, { AUDIT_ACTIONS, AUDIT_ENTITIES } from './auditLogService.js';
 import AppError from '../utils/AppError.js';
 
 const getAll = () => userModel.getAllUsers();
@@ -12,9 +13,18 @@ const getById = async (id) => {
     return user;
 };
 
-const create = ({ name, email, password, role }, currentUser) => {
-    const finalRole = currentUser.role === ROLES.ADMIN ? role : ROLES.USER;
-    return userModel.createUser({ name, email, password, role: finalRole });
+const create = async ({ name, email, password, role = ROLES.STAFF }, userId) => {
+    const id = await userModel.createUser({ name, email, password, role });
+
+    await auditLogService.log({
+        userId,
+        action: AUDIT_ACTIONS.CREATE,
+        entityType: AUDIT_ENTITIES.USER,
+        entityId: id,
+        newValues: { full_name: name, email, role },
+    });
+
+    return id;
 };
 
 export default {
