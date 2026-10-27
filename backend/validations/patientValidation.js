@@ -11,6 +11,12 @@ export const createPatientSchema = z.object({
     address: z.string().trim().max(500).nullish(),
 });
 
+export const updatePatientSchema = createPatientSchema;
+
+export const patientIdParamSchema = z.object({
+    id: z.uuid('Invalid patient id'),
+});
+
 export const listPatientsQuerySchema = z.object({
     search: z.string().trim().max(100).default(''),
     page: z.coerce.number().int().positive().default(1),

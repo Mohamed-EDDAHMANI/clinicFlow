@@ -10,6 +10,8 @@ const tag = String(stamp).slice(-8);
 const cin = (suffix) => `T${tag}${suffix}`;
 
 let token;
+let adminToken;
+let staffId;
 
 const validPatient = (overrides = {}) => ({
     full_name: `Patient ${tag}`,
@@ -26,13 +28,28 @@ const createPatient = (body) =>
 const listPatients = (query) =>
     request(app).get('/api/patients').query(query).set('Authorization', `Bearer ${token}`);
 
+const getPatient = (id) =>
+    request(app).get(`/api/patients/${id}`).set('Authorization', `Bearer ${token}`);
+
+const updatePatient = (id, body) =>
+    request(app).put(`/api/patients/${id}`).set('Authorization', `Bearer ${token}`).send(body);
+
+const deletePatient = (id, accessToken = adminToken) =>
+    request(app).delete(`/api/patients/${id}`).set('Authorization', `Bearer ${accessToken}`);
+
+const UNKNOWN_ID = '00000000-0000-4000-8000-000000000000';
+
 before(async () => {
     const email = testEmail('patients', stamp);
-    await createTestUser(email);
+    const adminEmail = testEmail('patients-admin', stamp);
+    staffId = await createTestUser(email);
+    await createTestUser(adminEmail, 'admin');
     token = (await login(email)).body.data.accessToken;
+    adminToken = (await login(adminEmail)).body.data.accessToken;
 });
 
 after(async () => {
+    await db.query('DELETE FROM appointments WHERE created_by = $1', [staffId]);
     await db.query('DELETE FROM patients WHERE cin LIKE $1', [`T${tag}%`]);
     await deleteTestUsers(stamp);
     await db.end();
@@ -134,5 +151,113 @@ describe('GET /api/patients', () => {
     it('requires a token', async () => {
         const res = await request(app).get('/api/patients');
         assert.equal(res.status, 401);
+    });
+});
+
+describe('GET /api/patients/:id', () => {
+    let patientId;
+
+    before(async () => {
+        patientId = (await createPatient(validPatient({ cin: cin('G') }))).body.data.id;
+    });
+
+    it('returns the patient', async () => {
+        const res = await getPatient(patientId);
+        assert.equal(res.status, 200);
+        assert.equal(res.body.data.id, patientId);
+        assert.equal(res.body.data.cin, cin('G'));
+    });
+
+    it('returns 404 for an unknown id', async () => {
+        const res = await getPatient(UNKNOWN_ID);
+        assert.equal(res.status, 404);
+    });
+
+    it('returns 400 for an invalid id', async () => {
+        const res = await getPatient('abc');
+        assert.equal(res.status, 400);
+        assert.equal(res.body.errors[0].field, 'id');
+    });
+});
+
+describe('PUT /api/patients/:id', () => {
+    let patientId;
+
+    before(async () => {
+        patientId = (await createPatient(validPatient({ cin: cin('U') }))).body.data.id;
+    });
+
+    it('updates the patient', async () => {
+        const res = await updatePatient(patientId, validPatient({
+            full_name: `Updated ${tag}`,
+            cin: cin('v').toLowerCase(),
+            phone: '0700000000',
+            birth_date: '1991-01-01',
+            address: null,
+        }));
+
+        assert.equal(res.status, 200);
+        assert.equal(res.body.data.full_name, `Updated ${tag}`);
+        assert.equal(res.body.data.cin, cin('V'));
+        assert.equal(res.body.data.birth_date, '1991-01-01');
+        assert.equal(res.body.data.address, null);
+        assert.notEqual(res.body.data.updated_at, res.body.data.created_at);
+    });
+
+    it('rejects a cin used by another patient', async () => {
+        await createPatient(validPatient({ cin: cin('W') }));
+        const res = await updatePatient(patientId, validPatient({ cin: cin('W') }));
+        assert.equal(res.status, 409);
+    });
+
+    it('rejects an invalid body', async () => {
+        const res = await updatePatient(patientId, { full_name: 'Only name' });
+        assert.equal(res.status, 400);
+    });
+
+    it('returns 404 for an unknown id', async () => {
+        const res = await updatePatient(UNKNOWN_ID, validPatient({ cin: cin('X') }));
+        assert.equal(res.status, 404);
+    });
+});
+
+describe('DELETE /api/patients/:id', () => {
+    let patientId;
+
+    before(async () => {
+        patientId = (await createPatient(validPatient({ cin: cin('R') }))).body.data.id;
+        await db.query(
+            `INSERT INTO appointments (patient_id, created_by, appointment_date, status, reason)
+             VALUES ($1, $2, NOW() + INTERVAL '1 day', 'confirmed', 'Test'), ($1, $2, NOW() + INTERVAL '2 days', 'pending', 'Test')`,
+            [patientId, staffId]
+        );
+    });
+
+    it('is admin only', async () => {
+        const res = await deletePatient(patientId, token);
+        assert.equal(res.status, 403);
+    });
+
+    it('soft deletes the patient and his appointments', async () => {
+        const res = await deletePatient(patientId);
+        assert.equal(res.status, 200);
+
+        const { rows: [patient] } = await db.query('SELECT deleted_at FROM patients WHERE id = $1', [patientId]);
+        assert.ok(patient.deleted_at);
+
+        const { rows } = await db.query('SELECT deleted_at FROM appointments WHERE patient_id = $1', [patientId]);
+        assert.equal(rows.length, 2);
+        assert.ok(rows.every((appointment) => appointment.deleted_at));
+    });
+
+    it('hides the deleted patient', async () => {
+        assert.equal((await getPatient(patientId)).status, 404);
+        assert.equal((await updatePatient(patientId, validPatient({ cin: cin('R') }))).status, 404);
+        assert.equal((await deletePatient(patientId)).status, 404);
+    });
+
+    it('allows reusing the cin of a deleted patient', async () => {
+        const res = await createPatient(validPatient({ cin: cin('R') }));
+        assert.equal(res.status, 201);
     });
 });

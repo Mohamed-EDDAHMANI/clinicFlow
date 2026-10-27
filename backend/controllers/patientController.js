@@ -11,7 +11,25 @@ const getPatients = async (req, res) => {
     sendSuccess(res, patients, 'Patients fetched successfully', 200, meta);
 };
 
+const getPatient = async (req, res) => {
+    const patient = await patientService.getById(req.params.id);
+    sendSuccess(res, patient, 'Patient fetched successfully');
+};
+
+const updatePatient = async (req, res) => {
+    const patient = await patientService.update(req.params.id, req.body);
+    sendSuccess(res, patient, 'Patient updated successfully');
+};
+
+const deletePatient = async (req, res) => {
+    await patientService.remove(req.params.id);
+    sendSuccess(res, null, 'Patient deleted successfully');
+};
+
 export default {
     createPatient,
-    getPatients
+    getPatients,
+    getPatient,
+    updatePatient,
+    deletePatient
 };

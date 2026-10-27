@@ -28,7 +28,52 @@ const findAll = async ({ search, limit, offset }) => {
     return { patients: rows, total };
 };
 
+const findById = async (id) => {
+    const { rows } = await db.query(`SELECT ${PUBLIC_COLUMNS} FROM patients WHERE id = $1 AND deleted_at IS NULL`, [id]);
+    return rows[0];
+};
+
+const update = async (id, { full_name, cin, phone, birth_date, address = null }) => {
+    const { rows } = await db.query(
+        `UPDATE patients SET full_name = $2, cin = $3, phone = $4, birth_date = $5, address = $6
+         WHERE id = $1 AND deleted_at IS NULL RETURNING ${PUBLIC_COLUMNS}`,
+        [id, full_name, cin, phone, birth_date, address]
+    );
+    return rows[0];
+};
+
+const softDelete = async (id) => {
+    const client = await db.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        const { rowCount } = await client.query(
+            'UPDATE patients SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL',
+            [id]
+        );
+
+        if (rowCount > 0) {
+            await client.query(
+                'UPDATE appointments SET deleted_at = NOW() WHERE patient_id = $1 AND deleted_at IS NULL',
+                [id]
+            );
+        }
+
+        await client.query('COMMIT');
+        return rowCount > 0;
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+
 export default {
     create,
-    findAll
+    findAll,
+    findById,
+    update,
+    softDelete
 };
