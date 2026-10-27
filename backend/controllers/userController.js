@@ -7,7 +7,7 @@ const getAllUsers = async (req, res) => {
 };
 
 const createUser = async (req, res) => {
-    const userId = await userService.create(req.body, req.user);
+    const userId = await userService.create(req.body, req.user.id);
     sendSuccess(res, { userId }, 'User created successfully', 201);
 };
 
