@@ -28,7 +28,7 @@ function refreshSession() {
         throw new Error('Session expired')
       }
 
-      const data = await res.json()
+      const { data } = await res.json()
       store.dispatch(setUser(data))
       return data
     })

@@ -12,9 +12,8 @@ const getById = async (id) => {
     return user;
 };
 
-const create = ({ name, email, password, role }, currentUser) => {
-    const finalRole = currentUser.role === ROLES.ADMIN ? role : ROLES.USER;
-    return userModel.createUser({ name, email, password, role: finalRole });
+const create = ({ name, email, password, role = ROLES.STAFF }) => {
+    return userModel.createUser({ name, email, password, role });
 };
 
 export default {

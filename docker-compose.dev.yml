@@ -1,0 +1,18 @@
+services:
+  backend:
+    environment:
+      NODE_ENV: development
+    command: sh -c "npm run migrate:up && npm run seed && npm run dev"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  front:
+    build:
+      target: build
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+    volumes:
+      - ./front:/app
+      - /app/node_modules
+    ports: !override
+      - "${FRONT_PORT:-5173}:5173"

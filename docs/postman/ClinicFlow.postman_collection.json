@@ -1,0 +1,194 @@
+{
+  "info": {
+    "name": "ClinicFlow API",
+    "description": "API ClinicFlow (Express + PostgreSQL).\n\n1. Lancer le projet (`docker compose up --build`).\n2. Exécuter **Auth > Login** : l'access token est enregistré dans la variable `accessToken` et utilisé automatiquement par les autres requêtes.\n3. Le refresh token est envoyé dans un cookie `httpOnly`, géré automatiquement par Postman.\n\nCompte admin par défaut : `admin@example.com` / valeur de `ADMIN_PASSWORD` dans `.env`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@example.com"
+    },
+    {
+      "key": "adminPassword",
+      "value": "admin123"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const accessToken = pm.response.json().data.accessToken;",
+                  "    const refreshToken = pm.cookies.get('refreshToken');",
+                  "",
+                  "    pm.collectionVariables.set('accessToken', accessToken);",
+                  "    if (refreshToken) {",
+                  "        pm.collectionVariables.set('refreshToken', refreshToken);",
+                  "    }",
+                  "} else {",
+                  "    pm.collectionVariables.unset('accessToken');",
+                  "    pm.collectionVariables.unset('refreshToken');",
+                  "    console.warn('Login failed:', pm.response.code, pm.response.text());",
+                  "}",
+                  "",
+                  "pm.test('Login successful', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login",
+            "description": "Connexion par email + mot de passe. Retourne l'access token et l'utilisateur, et place le refresh token dans un cookie `httpOnly`. 5 tentatives échouées max par 15 minutes."
+          }
+        },
+        {
+          "name": "Me",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "description": "Utilisateur connecté (sans mot de passe).",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Refresh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const accessToken = pm.response.json().data.accessToken;",
+                  "    const refreshToken = pm.cookies.get('refreshToken');",
+                  "",
+                  "    pm.collectionVariables.set('accessToken', accessToken);",
+                  "    if (refreshToken) {",
+                  "        pm.collectionVariables.set('refreshToken', refreshToken);",
+                  "    }",
+                  "} else {",
+                  "    pm.collectionVariables.unset('accessToken');",
+                  "    pm.collectionVariables.unset('refreshToken');",
+                  "    console.warn('Refresh failed:', pm.response.code, pm.response.text());",
+                  "}",
+                  "",
+                  "pm.test('Refresh successful', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/auth/refresh",
+            "description": "Nouvel access token à partir du cookie `refreshToken`. Le refresh token est remplacé à chaque appel : réutiliser un ancien token révoque les sessions de l'utilisateur."
+          }
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.unset('accessToken');",
+                  "pm.collectionVariables.unset('refreshToken');",
+                  "",
+                  "pm.test('Logout successful', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/auth/logout",
+            "description": "Révoque le refresh token et supprime le cookie."
+          }
+        }
+      ]
+    }
+  ]
+}
