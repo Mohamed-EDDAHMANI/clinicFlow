@@ -113,8 +113,8 @@ const RuleBanner = () => (
 )
 
 const MainStat = ({ label, icon, iconClass, value, caption }) => (
-  <div className="flex flex-col justify-between rounded-xl bg-surface-container-lowest p-4 shadow-sm transition-shadow hover:shadow-md">
-    <div className="flex items-center justify-between gap-2">
+  <div className="flex flex-col rounded-xl bg-surface-container-lowest p-4 shadow-sm transition-shadow hover:shadow-md">
+    <div className="flex min-h-10 items-start justify-between gap-2 sm:min-h-0">
       <span className="text-label-lg font-semibold text-on-surface">{label}</span>
       <Icon name={icon} className={`text-[22px] ${iconClass}`} />
     </div>
