@@ -2,8 +2,8 @@ export const NETWORK_ERROR_MESSAGE = 'Le serveur est injoignable. Vérifiez votr
 
 const BACKEND_MESSAGES = {
   'Invalid email or password': 'Email ou mot de passe incorrect.',
-  'Too many login attempts, please try again in 15 minutes': 'Trop de tentatives de connexion. Réessayez dans 15 minutes.',
-  'Too many requests, please try again in 15 minutes': 'Trop de requêtes. Réessayez dans 15 minutes.',
+  'Too many login attempts per second, please slow down': 'Trop de tentatives de connexion en même temps. Patientez un instant puis réessayez.',
+  'Too many requests per second, please slow down': 'Trop de requêtes en même temps. Patientez un instant puis réessayez.',
   'Validation failed': 'Certaines informations sont invalides. Corrigez les champs indiqués.',
   'Access denied': "Vous n'avez pas les droits pour effectuer cette action.",
   'Patient not found': 'Ce patient est introuvable ou a été supprimé.',
