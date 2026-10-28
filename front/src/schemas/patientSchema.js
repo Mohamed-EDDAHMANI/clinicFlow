@@ -5,7 +5,8 @@ const today = () => new Date().toISOString().slice(0, 10)
 export const patientSchema = z.object({
   full_name: z.string().trim()
     .min(2, 'Saisissez le nom complet du patient (2 caractères minimum).')
-    .max(255, 'Le nom ne doit pas dépasser 255 caractères.'),
+    .max(255, 'Le nom ne doit pas dépasser 255 caractères.')
+    .regex(/^\p{L}[\p{L}\p{M}\s'’.-]*$/u, 'Le nom ne contient que des lettres, des espaces, des tirets ou des apostrophes.'),
   cin: z.string().trim().toUpperCase()
     .regex(/^[A-Z0-9]{4,20}$/, 'Le CIN contient 4 à 20 lettres ou chiffres, sans espace. Exemple : AB123456.'),
   phone: z.string().transform((value) => value.replace(/[\s.-]/g, ''))
