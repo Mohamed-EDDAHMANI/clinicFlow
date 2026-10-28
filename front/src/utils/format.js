@@ -20,7 +20,12 @@ const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1)
 
 export const formatLongDate = (isoDate) => capitalize(longDate.format(new Date(`${isoDate}T00:00:00Z`)))
 
-export const formatShortDate = (isoDate) => shortDate.format(new Date(`${isoDate}T00:00:00Z`))
+export const localToday = () => {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+export const formatShortDate =(isoDate) => shortDate.format(new Date(`${isoDate}T00:00:00Z`))
 
 export const ageFrom = (isoDate) => {
   const [year, month, day] = isoDate.split('-').map(Number)

@@ -1,15 +1,15 @@
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { useSelector } from 'react-redux'
 import { Link } from 'react-router'
 import { getDashboardStats } from '../api/dashboardService'
-import { getAppointments, updateAppointmentStatus } from '../api/appointmentService'
+import { getAppointments } from '../api/appointmentService'
 import { useApi } from '../hooks/useApi'
-import { useNotify } from '../hooks/useNotify'
-import { APPOINTMENT_STATUS, reasonIcon } from '../config/appointments'
-import { firstName, formatClockTime, formatCount, formatLongDate, initials, plural } from '../utils/format'
+import { useAppointmentStatus } from '../hooks/useAppointmentStatus'
+import { APPOINTMENT_STATUS } from '../config/appointments'
+import { firstName, formatClockTime, formatCount, formatLongDate, plural } from '../utils/format'
 import Icon from '../components/Icon'
 import Alert from '../components/Alert'
-import StatusBadge from '../components/StatusBadge'
+import AppointmentCard from '../components/AppointmentCard'
 
 const Placeholder = ({ className = '' }) => (
   <span aria-hidden="true" className={`block rounded bg-surface-container ${className}`} />
@@ -199,62 +199,6 @@ const StatsSection = ({ stats, error, updatedAt, loading, onRefresh }) => (
   </section>
 )
 
-const AppointmentCard = ({ appointment, onStatusChange, busy }) => {
-  const meta = APPOINTMENT_STATUS[appointment.status]
-
-  return (
-    <article className="relative flex flex-col gap-2 overflow-hidden rounded-xl bg-surface-container-lowest p-4 shadow-sm transition-shadow hover:shadow-md">
-      <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1 ${meta.bar}`} />
-      <div className="flex items-start justify-between gap-2 pl-1">
-        <div className="flex min-w-0 items-center gap-2">
-          <span aria-hidden="true" className={`flex size-10 shrink-0 items-center justify-center rounded-full text-label-lg ${meta.avatar}`}>
-            {initials(appointment.patient_name)}
-          </span>
-          <div className="flex min-w-0 flex-col">
-            <span className="truncate text-label-lg font-semibold">{appointment.patient_name}</span>
-            <span className="truncate text-body-sm text-on-surface-variant">CIN : {appointment.patient_cin}</span>
-          </div>
-        </div>
-        <StatusBadge status={appointment.status} />
-      </div>
-
-      <div className="flex items-center justify-between gap-2 pt-1 pl-1 text-on-surface-variant">
-        <span className="flex min-w-0 items-center gap-1 text-body-sm">
-          <Icon name={reasonIcon(appointment.reason)} className="shrink-0 text-[16px]" />
-          <span className="truncate">{appointment.reason}</span>
-        </span>
-        <span className="flex shrink-0 items-center gap-1 rounded bg-surface-container-low px-2 py-0.5 text-label-md font-semibold text-on-surface tabular-nums">
-          <Icon name="schedule" className="text-[14px] text-primary" />
-          <time dateTime={appointment.appointment_date}>{appointment.local_time}</time>
-        </span>
-      </div>
-
-      {appointment.status === 'pending' && (
-        <div className="mt-1 grid grid-cols-2 gap-2 pt-1">
-          <button
-            type="button"
-            onClick={() => onStatusChange(appointment, 'confirmed')}
-            disabled={busy}
-            className="flex h-10 items-center justify-center gap-1 rounded-lg bg-secondary text-label-md font-semibold text-on-secondary shadow-sm hover:opacity-95 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
-          >
-            <Icon name="check" className="text-[16px]" />
-            Confirmer
-          </button>
-          <button
-            type="button"
-            onClick={() => onStatusChange(appointment, 'cancelled')}
-            disabled={busy}
-            className="flex h-10 items-center justify-center gap-1 rounded-lg bg-surface-container text-label-md font-semibold text-error hover:bg-error-container hover:text-on-error-container active:scale-[0.98] disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-error"
-          >
-            <Icon name="close" className="text-[16px]" />
-            Annuler
-          </button>
-        </div>
-      )}
-    </article>
-  )
-}
-
 const AppointmentSkeleton = () => (
   <div aria-hidden="true" className="flex flex-col gap-3 rounded-xl bg-surface-container-lowest p-4 shadow-sm">
     <div className="flex items-center gap-2">
@@ -310,16 +254,8 @@ const TodayAppointments = ({ appointments, error, updatedAt, loading, unavailabl
   </section>
 )
 
-const STATUS_MESSAGES = {
-  confirmed: 'Rendez-vous confirmé.',
-  cancelled: 'Rendez-vous annulé, le créneau est libéré.',
-}
-
 const DashboardPage = () => {
   const user = useSelector((state) => state.auth.user)
-  const notify = useNotify()
-  const [busyIds, setBusyIds] = useState(() => new Set())
-
   const stats = useApi(getDashboardStats)
   const today = stats.data?.today
   const fetchToday = useCallback(() => getAppointments({ date: today }), [today])
@@ -330,29 +266,10 @@ const DashboardPage = () => {
     appointments.reload()
   }
 
-  const setBusy = (id, busy) =>
-    setBusyIds((current) => {
-      const next = new Set(current)
-      if (busy) next.add(id)
-      else next.delete(id)
-      return next
-    })
-
-  const changeStatus = async (appointment, status) => {
-    if (busyIds.has(appointment.id)) return
-
-    setBusy(appointment.id, true)
-    try {
-      const updated = await updateAppointmentStatus(appointment.id, status)
-      appointments.setData((list) => list.map((item) => (item.id === updated.id ? updated : item)))
-      stats.reload()
-      notify.success(STATUS_MESSAGES[status])
-    } catch (error) {
-      notify.error(error)
-    } finally {
-      setBusy(appointment.id, false)
-    }
-  }
+  const { busyIds, changeStatus } = useAppointmentStatus((updated) => {
+    appointments.setData((list) => list.map((item) => (item.id === updated.id ? updated : item)))
+    stats.reload()
+  })
 
   return (
     <div className="flex flex-col gap-4 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8">

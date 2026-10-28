@@ -9,7 +9,13 @@ export const getAppointments = async ({ date, status } = {}) => {
   return (await apiFetch(`/appointments${query ? `?${query}` : ''}`)).data
 }
 
-export const updateAppointmentStatus = async (id, status) =>
+export const createAppointment = async (appointment) =>
+  (await apiFetch('/appointments', {
+    method: 'POST',
+    body: JSON.stringify(appointment),
+  })).data
+
+export const updateAppointmentStatus =async (id, status) =>
   (await apiFetch(`/appointments/${id}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),

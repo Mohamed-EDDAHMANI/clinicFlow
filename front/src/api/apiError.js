@@ -29,6 +29,8 @@ const SERVER_ERROR_MESSAGE = 'Une erreur est survenue sur le serveur. Réessayez
 const CONFLICT_FIELDS = {
   'cin already exists': 'cin',
   'email already exists': 'email',
+  'Patient not found': 'patient_id',
+  'Patient already has a confirmed appointment within 30 minutes': 'time',
 }
 
 export class ApiError extends Error {

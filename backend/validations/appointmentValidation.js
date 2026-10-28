@@ -6,7 +6,7 @@ const status = z.enum(APPOINTMENT_STATUSES);
 
 export const createAppointmentSchema = z.object({
     patient_id: z.uuid('Invalid patient id'),
-    appointment_date: z.iso.datetime({ offset: true, message: 'Appointment date must be an ISO date with time and timezone' }),
+    appointment_date: z.iso.datetime({ offset: true, local: true, message: 'Appointment date must be an ISO date with time' }),
     status: status.default('pending'),
     reason: z.string().trim().min(2, 'Reason must be at least 2 characters').max(255),
     notes: z.string().trim().max(1000).nullish(),
