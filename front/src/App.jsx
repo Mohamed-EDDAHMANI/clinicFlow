@@ -1,15 +1,14 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router';
 
 import PublicRoute from './routes/PublicRoute';
 import ProtectedRoute from './routes/ProtectedRoute';
+import { ROLES } from './config/roles';
 
-import LandingPage from './pages/LandingPage';
+import AppLayout from './components/AppLayout';
+import Toaster from './components/Toaster';
 import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
 import NotFoundPage from './pages/NotFoundPage';
-import ResetRedux from './pages/ResetRedux';
 
 function App() {
   return (
@@ -17,23 +16,20 @@ function App() {
       <Routes>
 
         <Route element={<PublicRoute />}>
-          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
         </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={['user']} />}>
-          <Route path="/home" element={<HomePage />} />
+        <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.STAFF]} />}>
+          <Route element={<AppLayout />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+          </Route>
         </Route>
 
-        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-          <Route path="/dashboard" element={<DashboardPage />} />
-        </Route>
-
-        <Route path="/reset" element={<ResetRedux />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<NotFoundPage />} />
 
       </Routes>
+      <Toaster />
     </Router>
   )
 }

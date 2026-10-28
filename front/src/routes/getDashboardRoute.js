@@ -1,8 +1,7 @@
-export const getDashboardRoute = (role) => {
-  if (role === 'admin') return '/dashboard'
-  if (role === 'user') return '/home'
-  return '/'
-}
+import { ROLES } from '../config/roles'
+
+export const getDashboardRoute = (role) =>
+  Object.values(ROLES).includes(role) ? '/dashboard' : '/login'
 
 export const getRole = (user) => {
   if (!user?.role) return null
