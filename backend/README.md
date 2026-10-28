@@ -54,4 +54,4 @@ tests/
 - **Erreurs** : `throw new AppError(message, status)` dans les controllers (pas de try/catch). `errorHandler` renvoie du JSON, convertit les erreurs PostgreSQL (doublon → 409) et renvoie 404 pour les routes inconnues.
 - **Env** : le serveur refuse de démarrer si une variable manque ou est invalide.
 - **Logs** : morgan (`dev` en développement, `combined` en production).
-- **Rate limit** : 100 requêtes / 15 min par IP sur `/api`.
+- **Rate limit** (détection des bots) : 20 requêtes / seconde par IP sur `/api`, 3 tentatives de connexion / seconde par IP sur `/api/auth/login`.

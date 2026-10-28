@@ -7,6 +7,7 @@ import { createTestUser, login, deleteTestUsers, testEmail, uniqueStamp } from '
 
 const stamp = uniqueStamp();
 const tag = String(stamp).slice(-8);
+const nameTag = tag.replace(/\d/g, (digit) => 'abcdefghij'[digit]);
 const cin = (suffix) => `T${tag}${suffix}`;
 
 let token;
@@ -14,7 +15,7 @@ let adminToken;
 let staffId;
 
 const validPatient = (overrides = {}) => ({
-    full_name: `Patient ${tag}`,
+    full_name: `Patient ${nameTag}`,
     cin: cin('A'),
     phone: '0612345678',
     birth_date: '1990-05-20',
@@ -73,6 +74,18 @@ describe('POST /api/patients', () => {
         assert.equal(res.body.success, false);
     });
 
+    it('rejects a full name with digits', async () => {
+        const res = await createPatient(validPatient({ full_name: 'Karim Tazi22', cin: cin('Z') }));
+        assert.equal(res.status, 400);
+        assert.deepEqual(res.body.errors.map((e) => e.field), ['full_name']);
+    });
+
+    it('accepts accents, hyphens and apostrophes in the full name', async () => {
+        const res = await createPatient(validPatient({ full_name: "Aïcha El-Fassi O'Neil", cin: cin('Y') }));
+        assert.equal(res.status, 201);
+        await db.query('DELETE FROM patients WHERE id = $1', [res.body.data.id]);
+    });
+
     it('rejects missing required fields', async () => {
         const res = await createPatient({ full_name: 'X' });
         assert.equal(res.status, 400);
@@ -94,7 +107,7 @@ describe('POST /api/patients', () => {
 describe('GET /api/patients', () => {
     before(async () => {
         for (const suffix of ['B', 'C', 'D', 'E']) {
-            await createPatient(validPatient({ cin: cin(suffix), full_name: `Patient ${tag} ${suffix}` }));
+            await createPatient(validPatient({ cin: cin(suffix), full_name: `Patient ${nameTag} ${suffix}` }));
         }
     });
 
@@ -115,7 +128,7 @@ describe('GET /api/patients', () => {
     });
 
     it('searches by full name', async () => {
-        const res = await listPatients({ search: `patient ${tag} c` });
+        const res = await listPatients({ search: `patient ${nameTag} c` });
         assert.equal(res.body.meta.total, 1);
         assert.equal(res.body.data[0].cin, cin('C'));
     });
@@ -189,7 +202,7 @@ describe('PUT /api/patients/:id', () => {
 
     it('updates the patient', async () => {
         const res = await updatePatient(patientId, validPatient({
-            full_name: `Updated ${tag}`,
+            full_name: `Updated ${nameTag}`,
             cin: cin('v').toLowerCase(),
             phone: '0700000000',
             birth_date: '1991-01-01',
@@ -197,7 +210,7 @@ describe('PUT /api/patients/:id', () => {
         }));
 
         assert.equal(res.status, 200);
-        assert.equal(res.body.data.full_name, `Updated ${tag}`);
+        assert.equal(res.body.data.full_name, `Updated ${nameTag}`);
         assert.equal(res.body.data.cin, cin('V'));
         assert.equal(res.body.data.birth_date, '1991-01-01');
         assert.equal(res.body.data.address, null);

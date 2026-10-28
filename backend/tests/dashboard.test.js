@@ -44,17 +44,20 @@ after(async () => {
 });
 
 describe('GET /api/dashboard/stats', () => {
-    it('returns the four counters', async () => {
+    it('returns the clinic day and the counters', async () => {
         const res = await getStats();
+        const { today, ...counters } = res.body.data;
 
         assert.equal(res.status, 200);
-        assert.deepEqual(Object.keys(res.body.data).sort(), [
+        assert.match(today, /^\d{4}-\d{2}-\d{2}$/);
+        assert.deepEqual(Object.keys(counters).sort(), [
+            'cancelled_appointments',
             'confirmed_appointments',
             'pending_appointments',
             'today_appointments',
             'total_patients',
         ]);
-        assert.ok(Object.values(res.body.data).every(Number.isInteger));
+        assert.ok(Object.values(counters).every(Number.isInteger));
     });
 
     it('counts active patients and appointments only', async () => {
@@ -77,6 +80,7 @@ describe('GET /api/dashboard/stats', () => {
         assert.equal(after.today_appointments - before.today_appointments, 3);
         assert.equal(after.pending_appointments - before.pending_appointments, 2);
         assert.equal(after.confirmed_appointments - before.confirmed_appointments, 2);
+        assert.equal(after.cancelled_appointments - before.cancelled_appointments, 1);
     });
 
     it('requires a token', async () => {

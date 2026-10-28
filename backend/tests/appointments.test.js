@@ -67,6 +67,12 @@ describe('POST /api/appointments', () => {
         assert.equal(res.body.data.patient_id, patientId);
         assert.equal(res.body.data.patient_name, `Patient ${tag} A`);
         assert.equal(new Date(res.body.data.appointment_date).toISOString(), '2030-11-12T09:00:00.000Z');
+        const { rows: [expected] } = await db.query(
+            `SELECT to_char($1::timestamptz AT TIME ZONE 'Africa/Casablanca', 'HH24:MI') AS time`,
+            ['2030-11-12T09:00:00Z']
+        );
+        assert.equal(res.body.data.local_date, '2030-11-12');
+        assert.equal(res.body.data.local_time, expected.time);
     });
 
     it('ignores created_by sent in the body', async () => {
@@ -86,8 +92,15 @@ describe('POST /api/appointments', () => {
         assert.deepEqual(res.body.errors.map((e) => e.field).sort(), ['appointment_date', 'patient_id', 'reason', 'status']);
     });
 
-    it('rejects a date without timezone', async () => {
-        const res = await createAppointment(validAppointment({ appointment_date: '2030-11-12T10:00:00' }));
+    it('reads a date without timezone in the clinic timezone', async () => {
+        const res = await createAppointment(validAppointment({ appointment_date: '2030-11-14T09:45' }));
+        assert.equal(res.status, 201);
+        assert.equal(res.body.data.local_date, '2030-11-14');
+        assert.equal(res.body.data.local_time, '09:45');
+    });
+
+    it('rejects a date without time', async () => {
+        const res = await createAppointment(validAppointment({ appointment_date: '2030-11-14' }));
         assert.equal(res.status, 400);
     });
 

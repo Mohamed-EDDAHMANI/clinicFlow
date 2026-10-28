@@ -2,13 +2,20 @@ import db from '../config/db.js';
 import { CLINIC_TIMEZONE } from '../config/clinic.js';
 
 const PUBLIC_COLUMNS = `a.id, a.patient_id, p.full_name AS patient_name, p.cin AS patient_cin, a.created_by,
-    a.appointment_date, a.status, a.reason, a.notes, a.created_at, a.updated_at`;
+    a.appointment_date,
+    to_char(a.appointment_date AT TIME ZONE '${CLINIC_TIMEZONE}', 'YYYY-MM-DD') AS local_date,
+    to_char(a.appointment_date AT TIME ZONE '${CLINIC_TIMEZONE}', 'HH24:MI') AS local_time,
+    a.status, a.reason, a.notes, a.created_at, a.updated_at`;
+
+const CLINIC_DATETIME = `CASE WHEN $3::text ~ '(Z|[+-][0-9]{2}(:?[0-9]{2})?)$'
+    THEN $3::text::timestamptz
+    ELSE $3::text::timestamp AT TIME ZONE '${CLINIC_TIMEZONE}' END`;
 
 const create = async ({ patient_id, created_by, appointment_date, status, reason, notes = null }) => {
     const { rows } = await db.query(
         `WITH a AS (
             INSERT INTO appointments (patient_id, created_by, appointment_date, status, reason, notes)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            VALUES ($1, $2, ${CLINIC_DATETIME}, $4, $5, $6)
             RETURNING *
         )
         SELECT ${PUBLIC_COLUMNS} FROM a JOIN patients p ON p.id = a.patient_id`,
