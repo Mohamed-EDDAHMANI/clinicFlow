@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { HeartPulse } from 'lucide-react'
 import { useDispatch } from 'react-redux'
 import { loginSchema } from '../schemas/authSchema'
 import { setUser } from '../features/authSlice'
@@ -55,7 +56,7 @@ const LoginPage = () => {
 
           <div className="flex items-center gap-2 mb-1">
             <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-on-primary shadow-md lg:size-12">
-              <Icon name="health_and_safety" className="text-[24px] lg:text-[28px]" />
+              <HeartPulse aria-hidden="true" strokeWidth={2.25} className="size-6 lg:size-7" />
             </span>
             <h1 className="text-headline-lg-mobile font-semibold tracking-tight lg:text-headline-lg">ClinicFlow</h1>
           </div>

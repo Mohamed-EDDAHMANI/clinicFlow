@@ -9,8 +9,12 @@
   --color-on-primary: #ffffff;
   --color-on-primary-fixed: #001d31;
   --color-secondary: #006a63;
+  --color-on-secondary: #ffffff;
   --color-secondary-container: #99efe5;
   --color-on-secondary-container: #006f67;
+  --color-tertiary: #006195;
+  --color-tertiary-container: #287ab3;
+  --color-surface-variant: #d3e4fe;
   --color-surface: #f8f9ff;
   --color-surface-container-lowest: #ffffff;
   --color-surface-container-low: #eff4ff;

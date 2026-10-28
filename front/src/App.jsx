@@ -8,6 +8,10 @@ import AppLayout from './components/AppLayout';
 import Toaster from './components/Toaster';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
+import PatientsPage from './pages/PatientsPage';
+import PatientFormPage from './pages/PatientFormPage';
+import AppointmentsPage from './pages/AppointmentsPage';
+import AppointmentFormPage from './pages/AppointmentFormPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -22,6 +26,11 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.STAFF]} />}>
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/patients" element={<PatientsPage />} />
+            <Route path="/patients/new" element={<PatientFormPage />} />
+            <Route path="/patients/:id/edit" element={<PatientFormPage />} />
+            <Route path="/appointments" element={<AppointmentsPage />} />
+            <Route path="/appointments/new" element={<AppointmentFormPage />} />
           </Route>
         </Route>
 

@@ -91,7 +91,7 @@
               "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
             },
             "url": "{{baseUrl}}/auth/login",
-            "description": "Connexion par email + mot de passe. Retourne l'access token et l'utilisateur, et place le refresh token dans un cookie `httpOnly`. 5 tentatives échouées max par 15 minutes."
+            "description": "Connexion par email + mot de passe. Retourne l'access token et l'utilisateur, et place le refresh token dans un cookie `httpOnly`. 3 tentatives max par seconde (protection contre les bots)."
           }
         },
         {
