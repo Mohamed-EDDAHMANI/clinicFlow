@@ -67,6 +67,12 @@ describe('POST /api/appointments', () => {
         assert.equal(res.body.data.patient_id, patientId);
         assert.equal(res.body.data.patient_name, `Patient ${tag} A`);
         assert.equal(new Date(res.body.data.appointment_date).toISOString(), '2030-11-12T09:00:00.000Z');
+        const { rows: [expected] } = await db.query(
+            `SELECT to_char($1::timestamptz AT TIME ZONE 'Africa/Casablanca', 'HH24:MI') AS time`,
+            ['2030-11-12T09:00:00Z']
+        );
+        assert.equal(res.body.data.local_date, '2030-11-12');
+        assert.equal(res.body.data.local_time, expected.time);
     });
 
     it('ignores created_by sent in the body', async () => {
