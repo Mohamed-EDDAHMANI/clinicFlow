@@ -5,19 +5,11 @@ import { useDispatch } from 'react-redux'
 import { loginSchema } from '../schemas/authSchema'
 import { setUser } from '../features/authSlice'
 import { login } from '../api/authService'
+import { useNotify } from '../hooks/useNotify'
+import { applyApiError } from '../utils/formErrors'
 import Icon from '../components/Icon'
-
-const API_ERRORS = {
-  'Invalid email or password': 'Email ou mot de passe incorrect.',
-  'Too many login attempts, please try again in 15 minutes': 'Trop de tentatives. Réessayez dans 15 minutes.',
-}
-
-const NETWORK_ERROR = 'Le serveur est injoignable. Vérifiez votre connexion puis réessayez.'
-
-const toFrenchError = (err) => {
-  if (err instanceof TypeError) return NETWORK_ERROR
-  return API_ERRORS[err.message] ?? err.message
-}
+import Alert from '../components/Alert'
+import FieldError from '../components/FieldError'
 
 const fieldClass =
   'w-full h-11 pl-10 rounded-lg bg-surface-container-lowest text-on-surface text-body-md shadow-sm ' +
@@ -25,15 +17,9 @@ const fieldClass =
   'focus:outline-none focus:bg-surface-container-low focus:ring-2 focus:ring-primary transition-colors ' +
   'aria-[invalid=true]:ring-error'
 
-const FieldError = ({ id, children }) => (
-  <p id={id} className="flex items-center gap-1 text-body-sm text-error">
-    <Icon name="error" className="text-[16px]" />
-    {children}
-  </p>
-)
-
 const LoginPage = () => {
   const dispatch = useDispatch()
+  const notify = useNotify()
   const [showPassword, setShowPassword] = useState(false)
   const [capsLock, setCapsLock] = useState(false)
 
@@ -48,8 +34,9 @@ const LoginPage = () => {
     try {
       const { data } = await login(values.email, values.password)
       dispatch(setUser(data))
-    } catch (err) {
-      setError('root', { message: toFrenchError(err) })
+      notify.success(`Bonjour ${data.user.full_name}, vous êtes connecté.`)
+    } catch (error) {
+      applyApiError(error, setError, ['email', 'password'])
     }
   }
 
@@ -81,12 +68,7 @@ const LoginPage = () => {
 
         <section className="rounded-xl bg-surface-container-lowest p-6 shadow-sm lg:p-8">
           <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-            {errors.root && (
-              <p role="alert" className="flex items-start gap-2 rounded-lg bg-error-container p-2 text-label-md text-on-error-container shadow-sm">
-                <Icon name="error" className="text-[18px]" />
-                <span className="pt-px">{errors.root.message}</span>
-              </p>
-            )}
+            {errors.root && <Alert>{errors.root.message}</Alert>}
 
             <div className="flex flex-col gap-1">
               <label htmlFor="email" className="text-label-md font-medium">Adresse email professionnelle</label>
@@ -103,7 +85,7 @@ const LoginPage = () => {
                   {...register('email')}
                 />
               </div>
-              {errors.email && <FieldError id="email-error">{errors.email.message}</FieldError>}
+              <FieldError id="email-error" error={errors.email} />
             </div>
 
             <div className="flex flex-col gap-1">
@@ -139,7 +121,7 @@ const LoginPage = () => {
                   La touche Verr. Maj est activée.
                 </p>
               )}
-              {errors.password && <FieldError id="password-error">{errors.password.message}</FieldError>}
+              <FieldError id="password-error" error={errors.password} />
             </div>
 
             <button

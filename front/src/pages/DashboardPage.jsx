@@ -1,10 +1,13 @@
+import { useSelector } from 'react-redux'
+
 const DashboardPage = () => {
+  const user = useSelector((state) => state.auth.user)
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <h1 className="text-4xl font-bold text-gray-800 tracking-tight">
-        Welcome To Dashboard
-      </h1>
-    </div>
+    <section>
+      <h1 className="text-headline-lg-mobile font-semibold lg:text-headline-lg">Tableau de bord</h1>
+      <p className="mt-1 text-body-lg text-on-surface-variant">Bonjour {user?.full_name}.</p>
+    </section>
   )
 }
 

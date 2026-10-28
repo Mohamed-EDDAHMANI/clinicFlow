@@ -4,9 +4,9 @@ import { getRole, getDashboardRoute } from './getDashboardRoute'
 
 const PublicRoute = () => {
   const user = useSelector((state) => state.auth.user)
-  const role = getRole(user)
+  const home = getDashboardRoute(getRole(user))
 
-  if (user) return <Navigate to={getDashboardRoute(role)} replace />
+  if (user && home !== '/login') return <Navigate to={home} replace />
 
   return <Outlet />
 }
