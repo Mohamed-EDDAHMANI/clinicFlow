@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "ClinicFlow API",
-    "description": "API ClinicFlow (Express + PostgreSQL).\n\n1. Lancer le projet (`docker compose up --build`).\n2. Exécuter **Auth > Login** : l'access token est enregistré dans la variable `accessToken` et utilisé automatiquement par les autres requêtes.\n3. Le refresh token est envoyé dans un cookie `httpOnly`, géré automatiquement par Postman.\n\nCompte admin par défaut : `admin@example.com` / valeur de `ADMIN_PASSWORD` dans `.env`.",
+    "description": "API ClinicFlow (Express + PostgreSQL).\n\n1. Lancer le projet (`docker compose up --build`).\n2. Exécuter **Auth > Login** : l'access token est enregistré dans la variable `accessToken` et utilisé automatiquement par les autres requêtes.\n3. **Run collection** lance tout dans l’ordre : Logout est en dernier, et le dossier **Rules & errors** vérifie la règle des 30 minutes et les codes 400 / 401 / 403 / 404 / 409.\n4. Le refresh token est envoyé dans un cookie `httpOnly`, géré automatiquement par Postman.\n\nCompte admin par défaut : `admin@example.com` / valeur de `ADMIN_PASSWORD` dans `.env`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -39,6 +39,30 @@
     },
     {
       "key": "appointmentId",
+      "value": ""
+    },
+    {
+      "key": "staffEmail",
+      "value": ""
+    },
+    {
+      "key": "staffToken",
+      "value": ""
+    },
+    {
+      "key": "rulePatientId",
+      "value": ""
+    },
+    {
+      "key": "ruleDate",
+      "value": ""
+    },
+    {
+      "key": "ruleConflictDate",
+      "value": ""
+    },
+    {
+      "key": "ruleLaterDate",
       "value": ""
     }
   ],
@@ -175,34 +199,6 @@
             "url": "{{baseUrl}}/auth/refresh",
             "description": "Nouvel access token à partir du cookie `refreshToken`. Le refresh token est remplacé à chaque appel : réutiliser un ancien token révoque les sessions de l'utilisateur."
           }
-        },
-        {
-          "name": "Logout",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.collectionVariables.unset('accessToken');",
-                  "pm.collectionVariables.unset('refreshToken');",
-                  "",
-                  "pm.test('Logout successful', () => {",
-                  "    pm.response.to.have.status(200);",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [],
-            "url": "{{baseUrl}}/auth/logout",
-            "description": "Révoque le refresh token et supprime le cookie."
-          }
         }
       ]
     },
@@ -269,7 +265,9 @@
                   "pm.request.headers.upsert({",
                   "    key: 'Authorization',",
                   "    value: `Bearer ${token}`",
-                  "});"
+                  "});",
+                  "",
+                  "pm.collectionVariables.set('staffEmail', `staff.${Date.now()}@clinicflow.ma`);"
                 ]
               }
             },
@@ -300,7 +298,7 @@
             "url": "{{baseUrl}}/user/create",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Nouveau Staff\",\n  \"email\": \"staff.{{$timestamp}}@clinicflow.ma\",\n  \"password\": \"staff123\",\n  \"role\": \"staff\"\n}"
+              "raw": "{\n  \"name\": \"Nouveau Staff\",\n  \"email\": \"{{staffEmail}}\",\n  \"password\": \"staff123\",\n  \"role\": \"staff\"\n}"
             }
           }
         }
@@ -593,7 +591,7 @@
                   "});",
                   "",
                   "pm.sendRequest({",
-                  "    url: pm.collectionVariables.get('baseUrl') + '/patients?limit=1',",
+                  "    url: pm.variables.get('baseUrl') + '/patients?limit=1',",
                   "    method: 'GET',",
                   "    header: { Authorization: `Bearer ${pm.collectionVariables.get('accessToken')}` }",
                   "}, (err, res) => {",
@@ -872,6 +870,16 @@
                   "disabled": true
                 },
                 {
+                  "key": "entity_id",
+                  "value": "{{patientId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "user_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
                   "key": "page",
                   "value": "1"
                 },
@@ -881,6 +889,474 @@
                 }
               ]
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rules & errors",
+      "description": "Règle métier des 30 minutes et codes d’erreur (400, 401, 403, 404, 409). À lancer après Auth > Login et Users > Create staff.",
+      "item": [
+        {
+          "name": "Create rule patient",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});",
+                  "",
+                  "const day = new Date();",
+                  "day.setUTCDate(day.getUTCDate() + 90 + Math.floor(Math.random() * 200));",
+                  "day.setUTCHours(9, 0, 0, 0);",
+                  "pm.collectionVariables.set('ruleDate', day.toISOString());",
+                  "pm.collectionVariables.set('ruleConflictDate', new Date(day.getTime() + 15 * 60000).toISOString());",
+                  "pm.collectionVariables.set('ruleLaterDate', new Date(day.getTime() + 30 * 60000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set('rulePatientId', pm.response.json().data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Patient dédié aux tests de la règle des 30 minutes.",
+            "url": "{{baseUrl}}/patients",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Patient Regle\",\n  \"cin\": \"RG{{$randomInt}}{{$randomInt}}\",\n  \"phone\": \"0611111111\",\n  \"birth_date\": \"1990-01-01\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Confirmed appointment",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Premier rendez-vous confirmé du patient.",
+            "url": "{{baseUrl}}/appointments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"{{rulePatientId}}\",\n  \"appointment_date\": \"{{ruleDate}}\",\n  \"status\": \"confirmed\",\n  \"reason\": \"Consultation générale\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Conflict within 30 minutes (409)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 409', () => {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "pm.test('Message de la règle des 30 minutes', () => {",
+                  "    pm.expect(pm.response.json().message).to.eql('Patient already has a confirmed appointment within 30 minutes');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Deuxième rendez-vous confirmé 15 minutes après : refusé.",
+            "url": "{{baseUrl}}/appointments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"{{rulePatientId}}\",\n  \"appointment_date\": \"{{ruleConflictDate}}\",\n  \"status\": \"confirmed\",\n  \"reason\": \"Contrôle\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Confirmed 30 minutes later (201)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Un rendez-vous confirmé 30 minutes après le premier est accepté.",
+            "url": "{{baseUrl}}/appointments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": \"{{rulePatientId}}\",\n  \"appointment_date\": \"{{ruleLaterDate}}\",\n  \"status\": \"confirmed\",\n  \"reason\": \"Suivi médical\"\n}"
+            }
+          }
+        },
+        {
+          "name": "No token (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Requête protégée sans header Authorization.",
+            "url": "{{baseUrl}}/patients"
+          }
+        },
+        {
+          "name": "Invalid body (400)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 400', () => {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Erreurs par champ', () => {",
+                  "    const fields = pm.response.json().errors.map((error) => error.field);",
+                  "    pm.expect(fields).to.include.members(['full_name', 'cin', 'phone', 'birth_date']);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Données invalides : la réponse liste les champs en erreur.",
+            "url": "{{baseUrl}}/patients",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"A\",\n  \"cin\": \"!\",\n  \"phone\": \"abc\",\n  \"birth_date\": \"2999-01-01\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Unknown patient (404)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('accessToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No accessToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Patient inexistant.",
+            "url": "{{baseUrl}}/patients/00000000-0000-4000-8000-000000000000"
+          }
+        },
+        {
+          "name": "Login as staff",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.collectionVariables.set('staffToken', pm.response.json().data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Connexion avec le staff créé dans Users > Create staff.",
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{staffEmail}}\",\n  \"password\": \"staff123\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Staff deletes patient (403)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const token = pm.collectionVariables.get('staffToken');",
+                  "",
+                  "if (!token) {",
+                  "    console.warn('No staffToken: run the login request first');",
+                  "}",
+                  "",
+                  "pm.request.headers.upsert({",
+                  "    key: 'Authorization',",
+                  "    value: `Bearer ${token}`",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403', () => {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "La suppression d’un patient est réservée à l’admin.",
+            "url": "{{baseUrl}}/patients/{{rulePatientId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Logout",
+      "item": [
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.unset('accessToken');",
+                  "pm.collectionVariables.unset('refreshToken');",
+                  "",
+                  "pm.test('Logout successful', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/auth/logout",
+            "description": "Révoque le refresh token et supprime le cookie."
           }
         }
       ]
