@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { useDispatch } from 'react-redux'
 import { updateAppointmentStatus } from '../api/appointmentService'
+import { dataChanged } from '../features/refreshSlice'
 import { useNotify } from './useNotify'
 
 const STATUS_MESSAGES = {
@@ -9,6 +11,7 @@ const STATUS_MESSAGES = {
 
 export const useAppointmentStatus = (onUpdated) => {
   const notify = useNotify()
+  const dispatch = useDispatch()
   const [busyIds, setBusyIds] = useState(() => new Set())
 
   const setBusy = (id, busy) =>
@@ -25,8 +28,9 @@ export const useAppointmentStatus = (onUpdated) => {
     setBusy(appointment.id, true)
     try {
       const updated = await updateAppointmentStatus(appointment.id, status)
-      onUpdated(updated)
       notify.success(STATUS_MESSAGES[status])
+      dispatch(dataChanged())
+      onUpdated?.(updated)
     } catch (error) {
       notify.error(error)
     } finally {

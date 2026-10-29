@@ -1,11 +1,11 @@
 import { z } from 'zod'
-import { localToday } from '../utils/format'
+import { clinicToday, isPast } from '../utils/format'
 
-export const appointmentSchema = z.object({
+const appointmentFields = z.object({
   patient_id: z.string().min(1, 'Choisissez le patient concerné.'),
   date: z.string()
     .min(1, 'Choisissez la date du rendez-vous.')
-    .refine((date) => date >= localToday(), 'La date ne peut pas être dans le passé.'),
+    .refine((date) => date >= clinicToday(), 'La date ne peut pas être dans le passé.'),
   time: z.string().regex(/^\d{2}:\d{2}$/, "Choisissez l'heure du rendez-vous."),
   reason: z.string().trim()
     .min(2, 'Indiquez le motif de la consultation (2 caractères minimum).')
@@ -16,7 +16,12 @@ export const appointmentSchema = z.object({
     .transform((value) => value || null),
 })
 
-export const APPOINTMENT_FIELDS = Object.keys(appointmentSchema.shape)
+export const appointmentSchema = appointmentFields.refine(
+  ({ date, time }) => !(date === clinicToday() && /^\d{2}:\d{2}$/.test(time) && isPast(date, time)),
+  { message: 'Cet horaire est déjà passé.', path: ['time'] },
+)
+
+export const APPOINTMENT_FIELDS = Object.keys(appointmentFields.shape)
 
 export const toAppointmentPayload = ({ date, time, ...appointment }) => ({
   ...appointment,

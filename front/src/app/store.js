@@ -3,6 +3,7 @@ import { persistStore, persistReducer, FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, 
 import storage from "redux-persist/es/storage";
 import authReducer from "../features/authSlice";
 import notificationsReducer from "../features/notificationsSlice";
+import refreshReducer from "../features/refreshSlice";
 
 const authPersistConfig = { key: "auth", storage, whitelist: ["user"] };
 
@@ -10,6 +11,7 @@ export const store = configureStore({
   reducer: {
     auth: persistReducer(authPersistConfig, authReducer),
     notifications: notificationsReducer,
+    refresh: refreshReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

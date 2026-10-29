@@ -1,137 +1,168 @@
 import { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
-import { HeartPulse } from 'lucide-react'
+import { Activity, ChevronDown, LogOut, Moon, PanelLeft, ShieldCheck, Sun, X } from 'lucide-react'
 import { logout as logoutRequest } from '../api/authService'
+import { getDashboardStats } from '../api/dashboardService'
 import { logout } from '../features/authSlice'
+import { useApi } from '../hooks/useApi'
 import { useNotify } from '../hooks/useNotify'
+import { useOverlay } from '../hooks/useOverlay'
+import { useTheme } from '../hooks/useTheme'
 import { ROLE_LABELS } from '../config/roles'
 import { NAV_ITEMS } from '../config/navigation'
-import Icon from './Icon'
+import Avatar from './Avatar'
+import GlobalSearch from './GlobalSearch'
+import PatientDrawer from './PatientDrawer'
+import PatientModal from './PatientModal'
+import AppointmentModal from './AppointmentModal'
 
-const sidebarLinkClass = ({ isActive }) =>
-  'flex items-center gap-2 rounded-lg p-2 text-label-lg transition-colors focus-visible:outline-2 focus-visible:outline-primary ' +
-  (isActive ? 'bg-primary-fixed text-primary' : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface')
+const navClass = ({ isActive }) => `nav-item ${isActive ? 'active' : ''}`
 
-const bottomLinkClass = ({ isActive }) =>
-  'flex min-h-11 min-w-16 flex-col items-center justify-center rounded-lg px-2 transition-colors focus-visible:outline-2 focus-visible:outline-primary ' +
-  (isActive ? 'text-primary font-semibold' : 'text-on-surface-variant hover:text-on-surface')
+const UserMenu = ({ user, onLogout, signingOut }) => {
+  const [open, setOpen] = useState(false)
+  const roleLabel = ROLE_LABELS[user?.role] ?? user?.role
 
-const Logo = () => (
-  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-on-primary shadow-md">
-    <HeartPulse aria-hidden="true" size={20} strokeWidth={2.25} />
-  </span>
-)
+  return (
+    <div
+      className="menu-wrap"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false)
+      }}
+      onKeyDown={(event) => event.key === 'Escape' && setOpen(false)}
+    >
+      <button type="button" className="user-chip" onClick={() => setOpen((current) => !current)} aria-expanded={open} aria-haspopup="menu">
+        <Avatar name={user?.full_name} seed={user?.id} />
+        <span className="user-name">{user?.full_name}</span>
+        <ChevronDown aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="pop" role="menu">
+          <div className="pop-head">
+            <b>{user?.full_name}</b>
+            <small>{user?.email}</small>
+            <span className="chip chip-brand">{roleLabel}</span>
+          </div>
+          <button type="button" role="menuitem" className="pop-item danger" onClick={onLogout} disabled={signingOut}>
+            <LogOut aria-hidden="true" />
+            {signingOut ? 'Déconnexion…' : 'Déconnexion'}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
-const Avatar = ({ className = 'size-10' }) => (
-  <span aria-hidden="true" className={`flex shrink-0 items-center justify-center rounded-full bg-primary text-on-primary ${className}`}>
-    <Icon name="person" className="text-[20px]" />
-  </span>
-)
+const Overlays = () => {
+  const { modal, modalId, modalDate, modalTime, patientId, close } = useOverlay()
 
-const LogoutButton = ({ onClick, disabled }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={disabled}
-    aria-label="Se déconnecter"
-    title="Se déconnecter"
-    className="flex size-10 shrink-0 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface disabled:cursor-wait disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-primary"
-  >
-    <Icon name="logout" className="text-[22px]" />
-  </button>
-)
+  return (
+    <>
+      {patientId && <PatientDrawer key={patientId} patientId={patientId} />}
+      {modal === 'new-appointment' && (
+        <AppointmentModal patientId={modalId} date={modalDate} time={modalTime} onClose={() => close()} />
+      )}
+      {(modal === 'new-patient' || modal === 'edit-patient') && (
+        <PatientModal
+          id={modal === 'edit-patient' ? modalId : null}
+          onClose={() => close()}
+          onSaved={(saved, editing) => close(editing ? {} : { fiche: saved.id })}
+        />
+      )}
+    </>
+  )
+}
 
 const AppLayout = () => {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const notify = useNotify()
+  const { theme, toggle } = useTheme()
+  const { openPatient } = useOverlay()
   const user = useSelector((state) => state.auth.user)
   const [signingOut, setSigningOut] = useState(false)
-
-  const pageTitle = NAV_ITEMS.find((item) => pathname.startsWith(item.to))?.label ?? 'ClinicFlow'
-  const roleLabel = ROLE_LABELS[user?.role] ?? user?.role
+  const [sideOpen, setSideOpen] = useState(false)
+  const stats = useApi(getDashboardStats)
 
   const handleLogout = async () => {
     setSigningOut(true)
     await logoutRequest().catch(() => null)
     dispatch(logout())
-    notify.success('Vous êtes déconnecté.')
+    notify.success('Déconnexion réussie.')
     navigate('/login', { replace: true })
   }
 
+  const badgeValue = (badge) => (badge === 'today' ? stats.data?.today_appointments : undefined)
+
   return (
-    <div className="min-h-dvh bg-surface">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-surface-container-lowest shadow-[1px_0_8px_rgba(0,0,0,0.04)] lg:flex">
-        <div className="flex h-20 items-center gap-2 px-6">
-          <Logo />
-          <span className="text-headline-sm font-semibold text-primary">ClinicFlow</span>
+    <div className={`app ${sideOpen ? 'side-open' : ''}`}>
+      <aside className="sidebar" aria-label="Menu principal">
+        <div className="side-top">
+          <span className="logo-tile"><Activity aria-hidden="true" /></span>
+          <span className="logo-text">ClinicFlow</span>
+          <button type="button" className="icon-btn side-close" onClick={() => setSideOpen(false)} aria-label="Fermer le menu">
+            <X aria-hidden="true" />
+          </button>
         </div>
 
-        <nav aria-label="Navigation principale" className="flex flex-1 flex-col gap-1 px-2 pt-4">
-          {NAV_ITEMS.map((item) => (
-            <NavLink key={item.to} to={item.to} className={sidebarLinkClass}>
-              <Icon name={item.icon} className="text-[22px]" />
-              {item.label}
-            </NavLink>
-          ))}
+        <div className="side-label">Navigation</div>
+        <nav className="side-nav" aria-label="Navigation principale">
+          {NAV_ITEMS.map((item) => {
+            const NavIcon = item.icon
+            const badge = badgeValue(item.badge)
+            return (
+              <NavLink key={item.to} to={item.to} className={navClass} onClick={() => setSideOpen(false)}>
+                <NavIcon aria-hidden="true" />
+                <span>{item.label}</span>
+                {typeof badge === 'number' && (
+                  <span className="nav-badge" title="Rendez-vous aujourd'hui">{badge}</span>
+                )}
+              </NavLink>
+            )
+          })}
         </nav>
 
-        <div className="m-2 flex items-center gap-2 rounded-xl bg-surface-container-low p-2">
-          <Avatar />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <span className="truncate text-label-lg font-semibold">{user?.full_name}</span>
-            <span className="text-label-sm text-on-surface-variant">{roleLabel}</span>
+        <div className="side-spacer" />
+
+        <div className="side-card">
+          <ShieldCheck aria-hidden="true" />
+          <div>
+            <b>Règle des 30 minutes</b>
+            <small>Deux rendez-vous confirmés d’un même patient ne peuvent pas se chevaucher.</small>
           </div>
-          <LogoutButton onClick={handleLogout} disabled={signingOut} />
         </div>
       </aside>
 
-      <div className="flex min-h-dvh flex-col lg:ml-64">
-        <header className="sticky top-0 z-30 bg-surface/85 pt-[env(safe-area-inset-top)] shadow-[0_1px_8px_rgba(0,0,0,0.04)] backdrop-blur-xl">
-          <div className="flex h-20 w-full items-center justify-between gap-2 px-4">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="lg:hidden">
-                <Logo />
-              </span>
-              <div className="flex min-w-0 flex-col">
-                <span className="truncate text-label-lg font-semibold text-primary lg:hidden">ClinicFlow</span>
-                <span className="truncate text-headline-sm font-semibold lg:text-headline-md">{pageTitle}</span>
-              </div>
-            </div>
+      {sideOpen && <div className="scrim" onClick={() => setSideOpen(false)} />}
 
-            <div className="flex shrink-0 items-center gap-2">
-              <div className="hidden flex-col text-right sm:flex">
-                <span className="text-label-md font-semibold">{user?.full_name}</span>
-                <span className="text-label-sm text-on-surface-variant">{roleLabel}</span>
-              </div>
-              <Avatar className="size-8 lg:size-10" />
-              <span className="lg:hidden">
-                <LogoutButton onClick={handleLogout} disabled={signingOut} />
-              </span>
-            </div>
-          </div>
+      <div className="main">
+        <header className="topbar">
+          <button type="button" className="icon-btn menu-btn" onClick={() => setSideOpen(true)} aria-label="Ouvrir le menu">
+            <PanelLeft aria-hidden="true" />
+          </button>
+          <GlobalSearch onSelect={(patient) => openPatient(patient.id)} />
+          <div className="tb-spacer" />
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={toggle}
+            aria-label={theme === 'dark' ? 'Passer en thème clair' : 'Passer en thème sombre'}
+            title={theme === 'dark' ? 'Thème clair' : 'Thème sombre'}
+          >
+            {theme === 'dark' ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
+          </button>
+          <UserMenu user={user} onLogout={handleLogout} signingOut={signingOut} />
         </header>
 
-        <main className="w-full flex-1 px-4 pt-4 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-8">
-          <Outlet />
+        <main className="content">
+          <div key={pathname} className="page-enter">
+            <Outlet />
+          </div>
         </main>
       </div>
 
-      <nav
-        aria-label="Navigation principale"
-        className="fixed inset-x-0 bottom-0 z-40 bg-surface/90 pb-[env(safe-area-inset-bottom)] shadow-[0_-2px_12px_rgba(0,0,0,0.04)] backdrop-blur-xl lg:hidden"
-      >
-        <div className="flex h-16 items-center justify-around px-1">
-          {NAV_ITEMS.map((item) => (
-            <NavLink key={item.to} to={item.to} className={bottomLinkClass}>
-              <Icon name={item.icon} className="text-[24px]" />
-              <span className="mt-0.5 text-label-sm">{item.shortLabel}</span>
-            </NavLink>
-          ))}
-        </div>
-      </nav>
+      <Overlays />
     </div>
   )
 }
