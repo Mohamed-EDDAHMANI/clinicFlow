@@ -44,6 +44,19 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 docker compose down -v
 ```
 
+### Variables d'environnement (`.env` à la racine)
+
+| Variable | Rôle | Défaut |
+|---|---|---|
+| `POSTGRES_USER` / `POSTGRES_DB` | Utilisateur et base PostgreSQL | `clinicflow` |
+| `POSTGRES_PASSWORD` | Mot de passe PostgreSQL | **obligatoire** |
+| `ACCESS_TOKEN_SECRET` / `REFRESH_TOKEN_SECRET` | Secrets JWT (32 caractères minimum) | **obligatoires** |
+| `ADMIN_NAME` / `ADMIN_EMAIL` | Compte admin créé par le seed | `Admin` / `admin@example.com` |
+| `ADMIN_PASSWORD` | Mot de passe de l'admin | **obligatoire** |
+| `BACKEND_PORT` / `FRONT_PORT` | Ports exposés sur la machine | `3000` / `5173` |
+
+Les variables du backend seul (`DATABASE_URL`, `CORS_ORIGIN`, durée des tokens…) sont dans `backend/.env.example`, celle du front (`VITE_API_URL`) dans `front/.env.example`.
+
 ## Comptes de test
 
 | Rôle | Email | Mot de passe |
@@ -86,7 +99,41 @@ npm test
 Les tests d'intégration (node:test + Supertest) utilisent la base de `DATABASE_URL`. Ils créent leurs propres données puis les suppriment.
 La CI GitHub Actions lance les tests backend, le lint et le build du front, puis publie les images Docker sur Docker Hub à chaque push sur `main`.
 
-Une collection Postman est disponible dans [docs/postman](docs/postman/ClinicFlow.postman_collection.json).
+Une collection Postman est disponible dans [docs/postman](docs/postman/ClinicFlow.postman_collection.json). **Run collection** la lance en entier ; le dossier **Rules & errors** vérifie la règle des 30 minutes et les codes 400 / 401 / 403 / 404 / 409.
+
+## Images Docker (Docker Hub)
+
+**Automatique (CI)** : à chaque push sur `main`, si les tests, le lint et le build passent, GitHub Actions construit et publie deux images :
+
+| Image | Tags |
+|---|---|
+| `<DOCKERHUB_USERNAME>/clinicflow-backend` | `latest` et le SHA du commit |
+| `<DOCKERHUB_USERNAME>/clinicflow-front` | `latest` et le SHA du commit |
+
+À configurer dans le dépôt GitHub (**Settings → Secrets and variables → Actions**) :
+
+| Nom | Type | Rôle |
+|---|---|---|
+| `DOCKERHUB_USERNAME` | secret | Compte Docker Hub |
+| `DOCKERHUB_TOKEN` | secret | Access token Docker Hub (Account settings → Personal access tokens) |
+| `VITE_API_URL` | variable | URL de l'API intégrée au front (défaut `http://localhost:3000/api`) |
+
+**Manuel** :
+```bash
+docker login
+docker build -t <user>/clinicflow-backend:latest ./backend
+docker build -t <user>/clinicflow-front:latest --build-arg VITE_API_URL=http://localhost:3000/api ./front
+docker push <user>/clinicflow-backend:latest
+docker push <user>/clinicflow-front:latest
+```
+
+**Récupérer les images** :
+```bash
+docker pull <user>/clinicflow-backend:latest
+docker pull <user>/clinicflow-front:latest
+```
+
+> `VITE_API_URL` est intégrée au front **au moment du build** : pour un autre domaine, il faut reconstruire l'image du front avec la bonne URL.
 
 ## Fonctionnalités
 
@@ -97,6 +144,8 @@ Une collection Postman est disponible dans [docs/postman](docs/postman/ClinicFlo
 | Rendez-vous | Créer, lister par date et par statut, confirmer ou annuler |
 | Dashboard | Total patients, rendez-vous du jour, en attente, confirmés |
 | Audit | Chaque création, modification ou suppression est enregistrée (`/api/audit-logs`, admin) |
+
+Les fonctionnalités ajoutées en plus du cahier des charges sont listées dans [front/README.md](front/README.md) et [backend/README.md](backend/README.md).
 
 ## Choix techniques
 
@@ -124,7 +173,7 @@ Chaque commande copie un template prêt à l'emploi, installe les dépendances e
 
 | | Librairies |
 |---|---|
-| **Front** | React 19, Vite, Tailwind CSS v4, Redux Toolkit + redux-persist, React Router, React Hook Form + Zod |
+| **Front** | React 19, Vite, Tailwind CSS v4, Redux Toolkit + redux-persist, React Router, React Hook Form + Zod, lucide-react |
 | **Backend** | Express 5, pg, JWT (jsonwebtoken) + bcrypt, Zod, cookie-parser, cors, express-rate-limit, morgan |
 | **Outils** | node-pg-migrate (migrations), nodemon, Supertest (tests), ESLint |
 
