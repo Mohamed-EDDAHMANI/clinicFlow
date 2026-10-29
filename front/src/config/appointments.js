@@ -1,39 +1,36 @@
-const REASON_ICONS = [
-  { pattern: /tension|bilan|cardi/i, icon: 'monitor_heart' },
-  { pattern: /douleur|articul|bless/i, icon: 'healing' },
-  { pattern: /pédiatr|enfant|bébé/i, icon: 'child_care' },
-]
-
-export const reasonIcon = (reason = '') =>
-  REASON_ICONS.find(({ pattern }) => pattern.test(reason))?.icon ?? 'stethoscope'
-
 export const APPOINTMENT_STATUS = {
   pending: {
     label: 'En attente',
     plural: 'En attente',
-    icon: 'pending',
-    badge: 'bg-surface-container text-tertiary',
-    bar: 'bg-tertiary-container',
-    avatar: 'bg-primary-fixed text-on-primary-fixed',
-    figure: 'text-tertiary',
+    chip: 'chip-warn',
+    event: 'ev-pending',
+    dot: 'var(--warn-dot)',
   },
   confirmed: {
     label: 'Confirmé',
     plural: 'Confirmés',
-    icon: 'check_circle',
-    filled: true,
-    badge: 'bg-secondary-container text-on-secondary-container',
-    bar: 'bg-secondary',
-    avatar: 'bg-secondary-container text-on-secondary-container',
-    figure: 'text-secondary',
+    chip: 'chip-ok',
+    event: 'ev-confirmed',
+    dot: 'var(--brand-500)',
   },
   cancelled: {
     label: 'Annulé',
     plural: 'Annulés',
-    icon: 'cancel',
-    badge: 'bg-error-container text-on-error-container',
-    bar: 'bg-error',
-    avatar: 'bg-surface-variant text-on-surface',
-    figure: 'text-error',
+    chip: 'chip-danger',
+    event: 'ev-cancelled',
+    dot: 'var(--danger)',
   },
 }
+
+export const APPOINTMENT_WINDOW_MINUTES = 30
+
+export const REASON_SUGGESTIONS = [
+  'Consultation générale',
+  'Suivi médical',
+  'Bilan annuel',
+  'Contrôle tension artérielle',
+  'Suivi diabète',
+  'Vaccination',
+  'Certificat médical',
+  'Urgence',
+]
