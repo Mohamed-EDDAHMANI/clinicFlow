@@ -55,3 +55,18 @@ tests/
 - **Env** : le serveur refuse de démarrer si une variable manque ou est invalide.
 - **Logs** : morgan (`dev` en développement, `combined` en production).
 - **Rate limit** (détection des bots) : 20 requêtes / seconde par IP sur `/api`, 3 tentatives de connexion / seconde par IP sur `/api/auth/login`.
+
+## En plus du cahier des charges
+
+- **Refresh token** : rotation à chaque refresh, cookie `httpOnly`, détection de réutilisation, `POST /api/auth/refresh` et `logout`.
+- **Gestion des utilisateurs** : `GET /api/user/getAll` et `POST /api/user/create` (admin).
+- **Journal d'audit consultable** : `GET /api/audit-logs` (admin), filtres `action`, `entity_type`, `entity_id`, `user_id` + pagination.
+- **Règle des 30 min dans PostgreSQL** : contrainte `EXCLUDE USING gist`, sûre même avec des requêtes simultanées.
+- **Fuseau de la clinique** : dates sans fuseau lues en heure `Africa/Casablanca`, champs `local_date` / `local_time` renvoyés.
+- **Recherche rapide** : index trigram (`pg_trgm`) sur `full_name` et `cin`, caractères `%` et `_` échappés.
+- **Dashboard** : nombre de rendez-vous annulés en plus.
+- **Rate limit** sur `/api` et sur le login.
+- **Variables d'env validées** avec Zod au démarrage.
+- **Erreurs PostgreSQL traduites** (doublon → 409, clé étrangère → 400/409, chevauchement → 409).
+- **CI GitHub Actions** : tests, lint, build et push des images sur Docker Hub.
+- **Collection Postman** : `docs/postman/`.
