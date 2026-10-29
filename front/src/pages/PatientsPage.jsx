@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useSelector } from 'react-redux'
-import { Link, useSearchParams } from 'react-router'
+import { useDispatch, useSelector } from 'react-redux'
+import { useSearchParams } from 'react-router'
+import { CalendarPlus, ChevronLeft, ChevronRight, Download, Ellipsis, LoaderCircle, Pencil, Plus, Search, SearchX, Trash2, UserPlus, X } from 'lucide-react'
 import { deletePatient, getPatients } from '../api/patientService'
+import { ROLES } from '../config/roles'
+import { dataChanged } from '../features/refreshSlice'
 import { useApi } from '../hooks/useApi'
 import { useNotify } from '../hooks/useNotify'
+import { useOverlay } from '../hooks/useOverlay'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
-import { ROLES } from '../config/roles'
-import { ageFrom, formatShortDate, initials, plural } from '../utils/format'
-import Icon from '../components/Icon'
+import { exportPatients } from '../utils/exportPatients'
+import { ageFrom, formatCount, formatShortDate, formatTimestamp, plural } from '../utils/format'
 import Alert from '../components/Alert'
+import Avatar from '../components/Avatar'
 import ConfirmDialog from '../components/ConfirmDialog'
 
 const PAGE_SIZE = 10
@@ -18,165 +22,63 @@ const readPage = (value) => {
   return Number.isInteger(page) && page > 0 ? page : 1
 }
 
-const Placeholder = ({ className = '' }) => (
-  <span aria-hidden="true" className={`block rounded bg-surface-container ${className}`} />
-)
-
-const iconButtonClass =
-  'flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors focus-visible:outline-2 focus-visible:outline-primary'
-
-const PatientActions = ({ patient, canDelete, onDelete }) => (
-  <div className="flex items-center gap-1">
-    <Link
-      to={`/patients/${patient.id}/edit`}
-      aria-label={`Modifier ${patient.full_name}`}
-      title="Modifier"
-      className={`${iconButtonClass} text-primary hover:bg-surface-container-low`}
-    >
-      <Icon name="edit" className="text-[20px]" />
-    </Link>
-    {canDelete && (
-      <button
-        type="button"
-        onClick={() => onDelete(patient)}
-        aria-label={`Supprimer ${patient.full_name}`}
-        title="Supprimer"
-        className={`${iconButtonClass} text-error hover:bg-error-container`}
-      >
-        <Icon name="delete" className="text-[20px]" />
-      </button>
-    )}
-  </div>
-)
-
-const PatientAvatar = ({ name }) => (
-  <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-fixed text-label-lg text-on-primary-fixed">
-    {initials(name)}
-  </span>
-)
-
-const PatientCard = ({ patient, canDelete, onDelete }) => (
-  <article className="flex flex-col gap-2 rounded-xl bg-surface-container-lowest p-4 shadow-sm">
-    <div className="flex items-start justify-between gap-2">
-      <div className="flex min-w-0 items-center gap-2">
-        <PatientAvatar name={patient.full_name} />
-        <div className="flex min-w-0 flex-col">
-          <span className="truncate text-label-lg font-semibold">{patient.full_name}</span>
-          <span className="truncate text-body-sm text-on-surface-variant">CIN : {patient.cin}</span>
-        </div>
-      </div>
-      <PatientActions patient={patient} canDelete={canDelete} onDelete={onDelete} />
-    </div>
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pl-12 text-body-sm text-on-surface-variant">
-      <a href={`tel:${patient.phone}`} className="flex items-center gap-1 rounded hover:text-primary focus-visible:outline-2 focus-visible:outline-primary">
-        <Icon name="call" className="text-[16px]" />
-        <span className="tabular-nums">{patient.phone}</span>
-      </a>
-      <span className="flex items-center gap-1">
-        <Icon name="cake" className="text-[16px]" />
-        {ageFrom(patient.birth_date)} ans
-      </span>
-    </div>
-  </article>
-)
-
-const PatientRow = ({ patient, canDelete, onDelete }) => (
-  <tr className="border-t border-surface-container transition-colors hover:bg-surface-container-low/60">
-    <td className="py-3 pr-4 pl-6">
-      <div className="flex min-w-0 items-center gap-3">
-        <PatientAvatar name={patient.full_name} />
-        <div className="flex min-w-0 flex-col">
-          <span className="truncate text-label-lg font-semibold">{patient.full_name}</span>
-          {patient.address && <span className="truncate text-body-sm text-on-surface-variant">{patient.address}</span>}
-        </div>
-      </div>
-    </td>
-    <td className="px-4 py-3 text-body-md font-medium tabular-nums">{patient.cin}</td>
-    <td className="px-4 py-3 text-body-md tabular-nums">
-      <a href={`tel:${patient.phone}`} className="rounded hover:text-primary focus-visible:outline-2 focus-visible:outline-primary">
-        {patient.phone}
-      </a>
-    </td>
-    <td className="px-4 py-3 text-body-md">
-      {formatShortDate(patient.birth_date)}
-      <span className="text-on-surface-variant"> · {ageFrom(patient.birth_date)} ans</span>
-    </td>
-    <td className="py-3 pr-6 pl-4">
-      <div className="flex justify-end">
-        <PatientActions patient={patient} canDelete={canDelete} onDelete={onDelete} />
-      </div>
-    </td>
-  </tr>
-)
-
-const ListSkeleton = () => (
-  <div aria-hidden="true" className="flex flex-col gap-2 lg:gap-0 lg:overflow-hidden lg:rounded-xl lg:bg-surface-container-lowest lg:shadow-sm">
-    {[0, 1, 2, 3].map((row) => (
-      <div key={row} className="flex items-center gap-3 rounded-xl bg-surface-container-lowest p-4 shadow-sm lg:rounded-none lg:px-6 lg:shadow-none">
-        <Placeholder className="size-10 rounded-full" />
-        <div className="flex flex-1 flex-col gap-1">
-          <Placeholder className="h-4 w-40" />
-          <Placeholder className="h-3 w-24" />
-        </div>
-      </div>
-    ))}
-  </div>
-)
-
-const EmptyState = ({ search, onClear }) => (
-  <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-outline-variant px-4 py-10 text-center">
-    <span className="flex size-12 items-center justify-center rounded-xl bg-surface-container-high text-primary">
-      <Icon name={search ? 'search_off' : 'group_add'} className="text-[26px]" />
-    </span>
-    {search ? (
-      <>
-        <p className="text-label-lg font-semibold">Aucun patient ne correspond à « {search} »</p>
-        <p className="max-w-sm text-body-md text-on-surface-variant">Vérifiez l'orthographe du nom ou le numéro de CIN.</p>
-        <button
-          type="button"
-          onClick={onClear}
-          className="mt-1 flex h-10 items-center gap-1 rounded-lg px-3 text-label-lg font-semibold text-primary hover:bg-surface-container-low focus-visible:outline-2 focus-visible:outline-primary"
-        >
-          <Icon name="close" className="text-[18px]" />
-          Effacer la recherche
-        </button>
-      </>
-    ) : (
-      <>
-        <p className="text-label-lg font-semibold">Aucun patient enregistré</p>
-        <p className="max-w-sm text-body-md text-on-surface-variant">Ajoutez un premier dossier pour pouvoir planifier ses rendez-vous.</p>
-      </>
-    )}
-  </div>
-)
-
-const Pagination = ({ meta, onChange, disabled }) => {
-  if (meta.totalPages <= 1) return null
-
-  const buttonClass =
-    'flex h-10 items-center gap-1 rounded-lg bg-surface-container-lowest px-3 text-label-lg font-semibold text-on-surface shadow-sm hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-primary'
-
-  return (
-    <nav aria-label="Pagination" className="flex items-center justify-between gap-2">
-      <button type="button" onClick={() => onChange(meta.page - 1)} disabled={disabled || meta.page <= 1} className={buttonClass}>
-        <Icon name="chevron_left" className="text-[20px]" />
-        Précédent
-      </button>
-      <span className="text-label-md text-on-surface-variant tabular-nums">
-        Page {meta.page} sur {meta.totalPages}
-      </span>
-      <button type="button" onClick={() => onChange(meta.page + 1)} disabled={disabled || meta.page >= meta.totalPages} className={buttonClass}>
-        Suivant
-        <Icon name="chevron_right" className="text-[20px]" />
-      </button>
-    </nav>
-  )
+const pageItems = (current, total) => {
+  const pages = new Set([1, total, current - 1, current, current + 1])
+  const sorted = [...pages].filter((page) => page >= 1 && page <= total).sort((a, b) => a - b)
+  return sorted.flatMap((page, index) => (index > 0 && page - sorted[index - 1] > 1 ? ['gap', page] : [page]))
 }
 
+const Pager = ({ meta, disabled, onChange }) => (
+  <nav className="pager" aria-label="Pagination">
+    <button type="button" className="pg-btn" onClick={() => onChange(meta.page - 1)} disabled={disabled || meta.page <= 1} aria-label="Page précédente">
+      <ChevronLeft aria-hidden="true" />
+    </button>
+    {pageItems(meta.page, meta.totalPages).map((item, index) =>
+      item === 'gap' ? (
+        <span key={`gap-${index}`} className="pg-gap">…</span>
+      ) : (
+        <button
+          key={item}
+          type="button"
+          className={`pg-btn ${item === meta.page ? 'current' : ''}`}
+          onClick={() => onChange(item)}
+          disabled={disabled || item === meta.page}
+          aria-current={item === meta.page ? 'page' : undefined}
+        >
+          {item}
+        </button>
+      ),
+    )}
+    <button type="button" className="pg-btn" onClick={() => onChange(meta.page + 1)} disabled={disabled || meta.page >= meta.totalPages} aria-label="Page suivante">
+      <ChevronRight aria-hidden="true" />
+    </button>
+  </nav>
+)
+
+const RowSkeleton = () =>
+  [0, 1, 2, 3, 4].map((row) => (
+    <tr key={row} aria-hidden="true">
+      <td>
+        <div className="p-cell">
+          <span className="skeleton size-9 rounded-full!" />
+          <div className="flex flex-col gap-1.5">
+            <span className="skeleton h-3.5 w-36" />
+            <span className="skeleton h-3 w-24" />
+          </div>
+        </div>
+      </td>
+      {[0, 1, 2, 3].map((cell) => (
+        <td key={cell}><span className="skeleton h-3.5 w-20" /></td>
+      ))}
+      <td />
+    </tr>
+  ))
+
 const PatientsPage = () => {
+  const dispatch = useDispatch()
   const notify = useNotify()
-  const user = useSelector((state) => state.auth.user)
-  const canDelete = user?.role === ROLES.ADMIN
+  const { open, openPatient } = useOverlay()
+  const canDelete = useSelector((state) => state.auth.user?.role === ROLES.ADMIN)
   const [searchParams, setSearchParams] = useSearchParams()
   const search = searchParams.get('search') ?? ''
   const page = readPage(searchParams.get('page'))
@@ -185,6 +87,7 @@ const PatientsPage = () => {
   const debouncedSearch = useDebouncedValue(searchInput.trim())
   const [toDelete, setToDelete] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   const updateParams = useCallback(
     (next) =>
@@ -229,7 +132,7 @@ const PatientsPage = () => {
       notify.success(`Le dossier de ${toDelete.full_name} a été supprimé.`)
       setToDelete(null)
       if (patients.length === 1 && page > 1) updateParams({ page: page - 1 })
-      else reload()
+      dispatch(dataChanged())
     } catch (err) {
       notify.error(err)
     } finally {
@@ -237,109 +140,193 @@ const PatientsPage = () => {
     }
   }
 
-  const showSkeleton = loading && !patients
+  const runExport = async () => {
+    setExporting(true)
+    try {
+      const count = await exportPatients(search)
+      notify.success(`Export CSV téléchargé (${plural(count, 'patient')}).`)
+    } catch (err) {
+      notify.error(err)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const stop = (handler) => (event) => {
+    event.stopPropagation()
+    handler()
+  }
+
+  const from = meta && meta.total ? (meta.page - 1) * meta.limit + 1 : 0
+  const to = meta ? Math.min(meta.page * meta.limit, meta.total) : 0
 
   return (
-    <div className="flex flex-col gap-4 lg:gap-6">
-      <section aria-labelledby="patients-title" className="flex flex-col gap-4 rounded-xl bg-surface-container-lowest p-4 shadow-sm lg:flex-row lg:items-end lg:justify-between lg:p-6">
-        <div className="flex flex-col gap-1">
-          <h1 id="patients-title" className="text-headline-sm font-semibold lg:text-headline-md">Dossiers patients</h1>
-          <p className="text-body-sm text-on-surface-variant lg:text-body-md">
-            {meta
-              ? search
-                ? `${plural(meta.total, 'résultat')} pour « ${search} »`
-                : `${plural(meta.total, 'patient enregistré', 'patients enregistrés')}`
-              : 'Recherchez un patient par son nom ou son CIN.'}
-          </p>
+    <>
+      <div className="page-head stagger">
+        <div>
+          <div className="eyebrow">Répertoire clinique</div>
+          <h1 className="page-title">
+            Tous les patients
+            {meta && !search && <span className="chip chip-brand">{formatCount(meta.total)}</span>}
+          </h1>
+          <p className="page-sub">Consultez et gérez les dossiers patients. Cliquez sur une ligne pour ouvrir la fiche.</p>
         </div>
-
-        <div className="flex flex-col gap-2 sm:flex-row lg:w-auto">
-          <div className="relative flex flex-1 items-center lg:w-80 lg:flex-none">
-            <Icon name="search" className="pointer-events-none absolute left-3 text-[20px] text-on-surface-variant" />
-            <label htmlFor="patient-search" className="sr-only">Rechercher un patient</label>
-            <input
-              id="patient-search"
-              type="search"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Nom ou CIN"
-              autoComplete="off"
-              className="h-11 w-full rounded-lg bg-surface-container-low pr-10 pl-10 text-body-md text-on-surface ring-1 ring-inset ring-outline-variant/50 placeholder:text-on-surface-variant focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary focus:outline-none [&::-webkit-search-cancel-button]:hidden"
-            />
-            {searchInput && (
-              <button
-                type="button"
-                onClick={clearSearch}
-                aria-label="Effacer la recherche"
-                className="absolute right-1 flex size-9 items-center justify-center rounded-md text-on-surface-variant hover:bg-surface-container focus-visible:outline-2 focus-visible:outline-primary"
-              >
-                <Icon name="close" className="text-[18px]" />
-              </button>
-            )}
-          </div>
-          <Link
-            to="/patients/new"
-            className="flex h-11 items-center justify-center gap-1 whitespace-nowrap rounded-lg bg-primary px-4 text-label-lg font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-container active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-          >
-            <Icon name="person_add" className="text-[20px]" />
-            Ajouter patient
-          </Link>
-        </div>
-      </section>
-
-      {error && (
-        <div className="flex flex-col gap-2">
-          <Alert>{patients ? `Actualisation impossible. ${error.message}` : error.message}</Alert>
-          <button
-            type="button"
-            onClick={reload}
-            className="flex h-10 items-center justify-center gap-1 self-start rounded-lg px-3 text-label-lg text-primary hover:bg-surface-container-low focus-visible:outline-2 focus-visible:outline-primary"
-          >
-            <Icon name="refresh" className="text-[18px]" />
-            Réessayer
+        <div className="page-actions">
+          <button type="button" className="btn btn-outline" onClick={runExport} disabled={exporting || meta?.total === 0}>
+            {exporting ? <LoaderCircle aria-hidden="true" className="spin" /> : <Download aria-hidden="true" />}
+            Exporter
+          </button>
+          <button type="button" className="btn btn-primary" onClick={() => open('new-patient')}>
+            <Plus aria-hidden="true" />
+            Ajouter un patient
           </button>
         </div>
-      )}
+      </div>
 
-      {showSkeleton && <ListSkeleton />}
-
-      {patients && patients.length === 0 && !loading && <EmptyState search={search} onClear={clearSearch} />}
-
-      {patients && patients.length > 0 && (
-        <div aria-busy={loading} className={`flex flex-col gap-4 transition-opacity ${loading ? 'opacity-60' : ''}`}>
-          <ul className="flex flex-col gap-2 lg:hidden">
-            {patients.map((patient) => (
-              <li key={patient.id}>
-                <PatientCard patient={patient} canDelete={canDelete} onDelete={setToDelete} />
-              </li>
-            ))}
-          </ul>
-
-          <div className="hidden overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm lg:block">
-            <table className="w-full table-fixed text-left">
-              <caption className="sr-only">Liste des patients</caption>
-              <thead className="bg-surface-container-low text-label-md text-on-surface-variant">
-                <tr>
-                  <th scope="col" className="w-[36%] py-3 pr-4 pl-6 font-semibold">Patient</th>
-                  <th scope="col" className="px-4 py-3 font-semibold">CIN</th>
-                  <th scope="col" className="px-4 py-3 font-semibold">Téléphone</th>
-                  <th scope="col" className="w-[22%] px-4 py-3 font-semibold">Date de naissance</th>
-                  <th scope="col" className="w-28 py-3 pr-6 pl-4 text-right font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {patients.map((patient) => (
-                  <PatientRow key={patient.id} patient={patient} canDelete={canDelete} onDelete={setToDelete} />
-                ))}
-              </tbody>
-            </table>
+      <div className="card patients-card page-fill stagger">
+        <div className="patients-body">
+          <div className="toolbar">
+            <div className="searchbox">
+              <Search aria-hidden="true" />
+              <label htmlFor="patient-search" className="sr-only">Rechercher un patient</label>
+              <input
+                id="patient-search"
+                type="search"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="Nom ou CIN…"
+                autoComplete="off"
+              />
+              {searchInput && (
+                <button type="button" className="clear" onClick={clearSearch} aria-label="Effacer la recherche">
+                  <X aria-hidden="true" />
+                </button>
+              )}
+            </div>
+            <div className="sp" />
+            {meta && (
+              <span className="chip chip-neutral" aria-live="polite">
+                {search ? `${plural(meta.total, 'résultat')} pour « ${search} »` : plural(meta.total, 'patient')}
+              </span>
+            )}
           </div>
 
-          {meta && (
-            <Pagination meta={meta} disabled={loading} onChange={(next) => updateParams({ page: next })} />
+          {error && (
+            <div className="p-4">
+              <Alert action={<button type="button" className="link-btn" onClick={reload}>Réessayer</button>}>
+                {patients ? `Actualisation impossible. ${error.message}` : error.message}
+              </Alert>
+            </div>
+          )}
+
+          {patients?.length === 0 && !loading ? (
+            <div className="empty">
+              <span className="empty-icn">{search ? <SearchX aria-hidden="true" /> : <UserPlus aria-hidden="true" />}</span>
+              {search ? (
+                <>
+                  <b>Aucun patient ne correspond à « {search} »</b>
+                  <p>Vérifiez l'orthographe du nom ou le numéro de CIN.</p>
+                  <button type="button" className="btn btn-outline mt-2" onClick={clearSearch}>
+                    <X aria-hidden="true" />
+                    Effacer la recherche
+                  </button>
+                </>
+              ) : (
+                <>
+                  <b>Aucun patient enregistré</b>
+                  <p>Ajoutez un premier dossier pour pouvoir planifier ses rendez-vous.</p>
+                  <button type="button" className="btn btn-primary mt-2" onClick={() => open('new-patient')}>
+                    <Plus aria-hidden="true" />
+                    Ajouter un patient
+                  </button>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table className={`table transition-opacity ${loading && patients ? 'opacity-60' : ''}`} aria-busy={loading}>
+                <caption className="sr-only">Liste des patients</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" className="w-[32%]">Patient</th>
+                    <th scope="col">CIN</th>
+                    <th scope="col">Téléphone</th>
+                    <th scope="col">Date de naissance</th>
+                    <th scope="col">Ajouté le</th>
+                    <th scope="col" className="w-36"><span className="sr-only">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {!patients && <RowSkeleton />}
+                  {patients?.map((patient) => (
+                    <tr
+                      key={patient.id}
+                      className="clickable"
+                      tabIndex={0}
+                      onClick={() => openPatient(patient.id)}
+                      onKeyDown={(event) => {
+                        if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                          event.preventDefault()
+                          openPatient(patient.id)
+                        }
+                      }}
+                      aria-label={`Ouvrir la fiche de ${patient.full_name}`}
+                    >
+                      <td>
+                        <div className="p-cell">
+                          <Avatar name={patient.full_name} seed={patient.id} />
+                          <div className="min-w-0">
+                            <b>{patient.full_name}</b>
+                            <small>{patient.address || 'Adresse non renseignée'}</small>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="num font-medium text-(--ink)">{patient.cin}</td>
+                      <td className="num">
+                        <a href={`tel:${patient.phone}`} onClick={(event) => event.stopPropagation()} className="hover:text-(--brand-600) hover:underline">
+                          {patient.phone}
+                        </a>
+                      </td>
+                      <td>
+                        {formatShortDate(patient.birth_date)}
+                        <span className="muted"> · {ageFrom(patient.birth_date)} ans</span>
+                      </td>
+                      <td className="muted">{formatTimestamp(patient.created_at)}</td>
+                      <td>
+                        <div className="row-actions">
+                          <button type="button" className="icon-btn sm" onClick={stop(() => open('new-appointment', { id: patient.id }))} aria-label={`Planifier un rendez-vous pour ${patient.full_name}`} title="Planifier un RDV">
+                            <CalendarPlus aria-hidden="true" />
+                          </button>
+                          <button type="button" className="icon-btn sm" onClick={stop(() => open('edit-patient', { id: patient.id }))} aria-label={`Modifier ${patient.full_name}`} title="Modifier">
+                            <Pencil aria-hidden="true" />
+                          </button>
+                          {canDelete && (
+                            <button type="button" className="icon-btn sm danger" onClick={stop(() => setToDelete(patient))} aria-label={`Supprimer ${patient.full_name}`} title="Supprimer">
+                              <Trash2 aria-hidden="true" />
+                            </button>
+                          )}
+                          <button type="button" className="icon-btn sm" onClick={stop(() => openPatient(patient.id))} aria-label={`Fiche de ${patient.full_name}`} title="Fiche patient">
+                            <Ellipsis aria-hidden="true" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {meta && meta.total > 0 && (
+            <div className="table-foot">
+              <small>
+                Affichage de <b>{from}–{to}</b> sur <b>{formatCount(meta.total)}</b> patients
+              </small>
+              {meta.totalPages > 1 && <Pager meta={meta} disabled={loading} onChange={(next) => updateParams({ page: next })} />}
+            </div>
           )}
         </div>
-      )}
+      </div>
 
       <ConfirmDialog
         open={Boolean(toDelete)}
@@ -351,12 +338,11 @@ const PatientsPage = () => {
       >
         {toDelete && (
           <p>
-            Le dossier de <strong className="font-semibold text-on-surface">{toDelete.full_name}</strong> (CIN {toDelete.cin}) et
-            ses rendez-vous ne seront plus visibles dans ClinicFlow.
+            Le dossier de <strong className="text-(--ink)">{toDelete.full_name}</strong> (CIN {toDelete.cin}) et ses rendez-vous ne seront plus visibles dans ClinicFlow.
           </p>
         )}
       </ConfirmDialog>
-    </div>
+    </>
   )
 }
 

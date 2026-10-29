@@ -1,22 +1,23 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { HeartPulse } from 'lucide-react'
 import { useDispatch } from 'react-redux'
+import { Activity, ArrowRight, Eye, EyeOff, Keyboard, LoaderCircle, Lock, Mail, Stethoscope } from 'lucide-react'
 import { loginSchema } from '../schemas/authSchema'
 import { setUser } from '../features/authSlice'
 import { login } from '../api/authService'
 import { useNotify } from '../hooks/useNotify'
 import { applyApiError } from '../utils/formErrors'
-import Icon from '../components/Icon'
+import { fieldProps } from '../utils/fieldProps'
+import { clinicToday, firstName } from '../utils/format'
 import Alert from '../components/Alert'
-import FieldError from '../components/FieldError'
+import Field from '../components/Field'
 
-const fieldClass =
-  'w-full h-11 pl-10 rounded-lg bg-surface-container-lowest text-on-surface text-body-md shadow-sm ' +
-  'ring-1 ring-inset ring-outline-variant/70 placeholder:text-on-surface-variant ' +
-  'focus:outline-none focus:bg-surface-container-low focus:ring-2 focus:ring-primary transition-colors ' +
-  'aria-[invalid=true]:ring-error'
+const HIGHLIGHTS = [
+  { value: '30 min', label: 'contrôle des créneaux' },
+  { value: '2 rôles', label: 'admin & personnel' },
+  { value: 'JWT', label: 'sessions sécurisées' },
+]
 
 const LoginPage = () => {
   const dispatch = useDispatch()
@@ -35,113 +36,117 @@ const LoginPage = () => {
     try {
       const { data } = await login(values.email, values.password)
       dispatch(setUser(data))
-      notify.success(`Bonjour ${data.user.full_name}, vous êtes connecté.`)
+      notify.success(`Bon retour, ${firstName(data.user.full_name)} 👋`)
     } catch (error) {
       applyApiError(error, setError, ['email', 'password'])
     }
   }
 
   const trackCapsLock = (event) => setCapsLock(event.getModifierState('CapsLock'))
-
-  const passwordHints = [errors.password && 'password-error', capsLock && 'password-caps'].filter(Boolean).join(' ')
+  const passwordDescription = [errors.password && 'password-error', capsLock && 'password-caps'].filter(Boolean).join(' ')
 
   return (
-    <div className="min-h-dvh bg-surface pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-      <main className="mx-auto w-full max-w-md px-4 pt-6 pb-8 lg:max-w-5xl lg:min-h-dvh lg:grid lg:grid-cols-2 lg:items-center lg:gap-16 lg:px-8 lg:py-12">
-        <header className="flex flex-col items-center text-center mt-4 mb-6 lg:items-start lg:text-left lg:m-0">
-          <p className="inline-flex items-center gap-1 rounded-full bg-surface-container-high px-4 py-1 text-primary shadow-sm mb-4">
-            <Icon name="local_hospital" filled className="text-[18px]" />
-            <span className="text-label-sm font-semibold uppercase tracking-wider">Portail médical sécurisé</span>
-          </p>
+    <div className="login">
+      <section className="login-brand" aria-hidden="true">
+        <div className="glow" />
+        <div className="orb orb-1" />
+        <div className="orb orb-2" />
+        <div className="ecg-wrap">
+          <svg viewBox="0 0 560 90" preserveAspectRatio="none">
+            <path className="ecg-path" d="M0 45 H150 L168 45 L178 18 L190 72 L200 45 H300 L315 45 L325 30 L335 60 L345 45 H560" />
+          </svg>
+        </div>
 
-          <div className="flex items-center gap-2 mb-1">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-on-primary shadow-md lg:size-12">
-              <HeartPulse aria-hidden="true" strokeWidth={2.25} className="size-6 lg:size-7" />
-            </span>
-            <h1 className="text-headline-lg-mobile font-semibold tracking-tight lg:text-headline-lg">ClinicFlow</h1>
+        <div className="lb-head">
+          <span className="logo-tile"><Activity /></span>
+          <span className="logo-text">ClinicFlow</span>
+        </div>
+
+        <div className="lb-mid">
+          <div className="lb-icon"><Stethoscope /></div>
+          <div className="eyebrow">Le cockpit de votre clinique</div>
+          <h1>Plus de temps<br />pour vos <em>patients.</em></h1>
+          <p>Centralisez vos rendez-vous, vos dossiers patients et votre équipe dans un espace simple, serein et sécurisé.</p>
+          <div className="lb-stats">
+            {HIGHLIGHTS.map((item) => (
+              <div key={item.label}>
+                <b>{item.value}</b>
+                <span>{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="lb-foot">© {clinicToday().slice(0, 4)} ClinicFlow · Gestion clinique simplifiée</div>
+      </section>
+
+      <main className="login-form">
+        <div className="login-card">
+          <div className="login-mobile-logo">
+            <span className="logo-tile"><Activity aria-hidden="true" /></span>
+            <span className="logo-text">ClinicFlow</span>
           </div>
 
-          <h2 className="text-headline-sm font-semibold mt-1 lg:text-headline-md lg:mt-6">Bienvenue sur ClinicFlow</h2>
-          <p className="text-body-sm text-on-surface-variant max-w-xs mt-1 leading-relaxed lg:text-body-lg lg:max-w-sm lg:mt-2">
-            Connectez-vous pour accéder aux dossiers patients et au planning des rendez-vous.
-          </p>
-        </header>
+          <div className="eyebrow">Bienvenue</div>
+          <h2>Ravi de vous revoir.</h2>
+          <p className="sub">Connectez-vous à votre espace ClinicFlow.</p>
 
-        <section className="rounded-xl bg-surface-container-lowest p-6 shadow-sm lg:p-8">
-          <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate>
             {errors.root && <Alert>{errors.root.message}</Alert>}
 
-            <div className="flex flex-col gap-1">
-              <label htmlFor="email" className="text-label-md font-medium">Adresse email professionnelle</label>
-              <div className="relative flex items-center">
-                <Icon name="mail" className="absolute left-3 text-[20px] text-on-surface-variant" />
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="username"
-                  placeholder="ex : nom@clinique.ma"
-                  aria-invalid={Boolean(errors.email)}
-                  aria-describedby={errors.email ? 'email-error' : undefined}
-                  className={`${fieldClass} pr-4`}
-                  {...register('email')}
-                />
-              </div>
-              <FieldError id="email-error" error={errors.email} />
-            </div>
+            <Field id="email" label="Adresse email" icon={Mail} error={errors.email}>
+              <input
+                className="input"
+                type="email"
+                autoComplete="username"
+                placeholder="vous@clinique.ma"
+                {...fieldProps('email', errors.email)}
+                {...register('email')}
+              />
+            </Field>
 
-            <div className="flex flex-col gap-1">
-              <label htmlFor="password" className="text-label-md font-medium">Mot de passe</label>
-              <div className="relative flex items-center">
-                <Icon name="lock" className="absolute left-3 text-[20px] text-on-surface-variant" />
+            <div>
+              <Field id="password" label="Mot de passe" icon={Lock} error={errors.password}>
                 <input
-                  id="password"
+                  className="input pr-11!"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
-                  placeholder="Votre mot de passe"
+                  placeholder="••••••••"
+                  id="password"
                   aria-invalid={Boolean(errors.password)}
-                  aria-describedby={passwordHints || undefined}
+                  aria-describedby={passwordDescription || undefined}
                   onKeyUp={trackCapsLock}
                   onKeyDown={trackCapsLock}
-                  className={`${fieldClass} pr-11`}
                   {...register('password', { onBlur: () => setCapsLock(false) })}
                 />
                 <button
                   type="button"
+                  className="pw-toggle"
                   onClick={() => setShowPassword((shown) => !shown)}
                   aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                   aria-pressed={showPassword}
                   aria-controls="password"
-                  className="absolute right-2 flex size-8 items-center justify-center rounded-md text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface focus-visible:outline-2 focus-visible:outline-primary"
                 >
-                  <Icon name={showPassword ? 'visibility_off' : 'visibility'} className="text-[20px]" />
+                  {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
                 </button>
-              </div>
+              </Field>
               {capsLock && (
-                <p id="password-caps" className="flex items-center gap-1 text-body-sm text-on-surface-variant">
-                  <Icon name="keyboard_capslock" className="text-[16px]" />
+                <p id="password-caps" className="caps-hint">
+                  <Keyboard aria-hidden="true" />
                   La touche Verr. Maj est activée.
                 </p>
               )}
-              <FieldError id="password-error" error={errors.password} />
             </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="mt-1 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary text-label-lg font-semibold text-on-primary shadow-md transition-colors hover:bg-primary-container active:scale-[0.99] disabled:cursor-wait disabled:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-            >
-              <Icon
-                name={isSubmitting ? 'progress_activity' : 'login'}
-                className={`text-[20px] ${isSubmitting ? 'motion-safe:animate-spin' : ''}`}
-              />
-              {isSubmitting ? 'Connexion…' : 'Se connecter'}
+            <button className="btn btn-primary btn-block" type="submit" disabled={isSubmitting}>
+              {isSubmitting && <LoaderCircle aria-hidden="true" className="spin" />}
+              <span>{isSubmitting ? 'Connexion…' : 'Se connecter'}</span>
+              {!isSubmitting && <ArrowRight aria-hidden="true" />}
             </button>
-
-            <p className="text-center text-body-sm text-on-surface-variant">
-              Pas encore de compte ? Demandez à votre administrateur de vous en créer un.
-            </p>
           </form>
-        </section>
+
+          <p className="login-help">Pas encore de compte ? Demandez à votre administrateur de vous en créer un.</p>
+        </div>
       </main>
     </div>
   )
