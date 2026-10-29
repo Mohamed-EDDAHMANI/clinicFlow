@@ -1,25 +1,19 @@
 import { Link } from 'react-router'
-import Icon from '../components/Icon'
+import { ArrowLeft, SearchX } from 'lucide-react'
 
-const NotFoundPage = () => {
-  return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-surface px-4 text-center">
-      <span className="flex size-12 items-center justify-center rounded-xl bg-surface-container-high text-primary">
-        <Icon name="search_off" className="text-[28px]" />
-      </span>
-      <h1 className="text-headline-lg-mobile font-semibold">Page introuvable</h1>
-      <p className="max-w-xs text-body-md text-on-surface-variant">
-        Cette adresse ne correspond à aucune page de ClinicFlow.
-      </p>
-      <Link
-        to="/"
-        className="mt-2 flex h-11 items-center gap-2 rounded-lg bg-primary px-4 text-label-lg font-semibold text-on-primary shadow-md hover:bg-primary-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-      >
-        <Icon name="arrow_back" className="text-[20px]" />
+const NotFoundPage = () => (
+  <main className="not-found">
+    <div className="card">
+      <span className="empty-icn mx-auto mb-4"><SearchX aria-hidden="true" /></span>
+      <p className="code">404</p>
+      <h1 className="mt-3 text-xl font-extrabold">Page introuvable</h1>
+      <p className="muted mx-auto mt-2 max-w-xs">Cette adresse ne correspond à aucune page de ClinicFlow.</p>
+      <Link to="/" className="btn btn-primary mt-6">
+        <ArrowLeft aria-hidden="true" />
         Retour à l'accueil
       </Link>
-    </main>
-  )
-}
+    </div>
+  </main>
+)
 
 export default NotFoundPage
