@@ -1,21 +1,19 @@
 import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useLocation } from 'react-router'
-import { hasAppNavigation } from '../config/navigation'
+import { CircleAlert, CircleCheck, Info, X } from 'lucide-react'
 import { dismiss } from '../features/notificationsSlice'
-import Icon from './Icon'
 
-const DURATION_MS = 5000
+const DURATION_MS = 4500
 
-const VARIANTS = {
-  success: { icon: 'check_circle', className: 'text-secondary' },
-  error: { icon: 'error', className: 'text-error' },
-  info: { icon: 'info', className: 'text-primary' },
+const ICONS = {
+  success: CircleCheck,
+  error: CircleAlert,
+  info: Info,
 }
 
 const Toast = ({ id, type, message }) => {
   const dispatch = useDispatch()
-  const { icon, className } = VARIANTS[type]
+  const ToastIcon = ICONS[type]
 
   useEffect(() => {
     const timer = setTimeout(() => dispatch(dismiss(id)), DURATION_MS)
@@ -23,19 +21,11 @@ const Toast = ({ id, type, message }) => {
   }, [dispatch, id])
 
   return (
-    <li
-      role={type === 'error' ? 'alert' : 'status'}
-      className="pointer-events-auto flex w-full items-start gap-3 rounded-xl bg-surface-container-lowest p-3 shadow-lg ring-1 ring-outline-variant/60 motion-safe:animate-[toast-in_200ms_ease-out]"
-    >
-      <Icon name={icon} filled className={`text-[20px] ${className}`} />
-      <p className="flex-1 pt-px text-body-md text-on-surface">{message}</p>
-      <button
-        type="button"
-        onClick={() => dispatch(dismiss(id))}
-        aria-label="Fermer la notification"
-        className="flex size-7 items-center justify-center rounded-md text-on-surface-variant hover:bg-surface-container-low focus-visible:outline-2 focus-visible:outline-primary"
-      >
-        <Icon name="close" className="text-[18px]" />
+    <li role={type === 'error' ? 'alert' : 'status'} className={`toast ${type}`}>
+      <ToastIcon aria-hidden="true" className="t-icn" />
+      <p>{message}</p>
+      <button type="button" onClick={() => dispatch(dismiss(id))} aria-label="Fermer la notification">
+        <X aria-hidden="true" />
       </button>
     </li>
   )
@@ -43,16 +33,9 @@ const Toast = ({ id, type, message }) => {
 
 const Toaster = () => {
   const items = useSelector((state) => state.notifications.items)
-  const { pathname } = useLocation()
-  const bottomOffset = hasAppNavigation(pathname)
-    ? 'bottom-[calc(5rem+env(safe-area-inset-bottom))]'
-    : 'bottom-[max(1rem,env(safe-area-inset-bottom))]'
 
   return (
-    <ol
-      aria-live="polite"
-      className={`pointer-events-none fixed inset-x-4 ${bottomOffset} z-50 flex flex-col gap-2 sm:inset-x-auto sm:right-6 sm:bottom-auto sm:top-[calc(6rem+env(safe-area-inset-top))] sm:w-96`}
-    >
+    <ol aria-live="polite" className="toasts">
       {items.map((item) => (
         <Toast key={item.id} {...item} />
       ))}
